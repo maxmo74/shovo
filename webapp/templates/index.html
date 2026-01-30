@@ -246,10 +246,9 @@
             ×
           </button>
         </div>
-        <p class="modal-subtitle">Share this list</p>
-        <p class="modal-body" id="share-modal-message">
-          Share this list via your favorite messaging platform.
-        </p>
+        <input type="text" class="modal-subtitle-editable" id="share-modal-list-name" />
+        <p class="modal-body modal-error" id="share-modal-error" hidden></p>
+        <p class="modal-body" id="share-modal-message"></p>
         <div class="share-actions">
           <button class="ghost share-option" id="share-copy" type="button">
             <img src="/static/copy.svg" alt="" class="share-icon" />

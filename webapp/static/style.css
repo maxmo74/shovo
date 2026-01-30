@@ -1020,6 +1020,35 @@ button.ghost {
   font-size: 0.9rem;
 }
 
+.modal-subtitle-editable {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  transition: border-color 0.2s ease;
+  outline: none;
+}
+
+.modal-subtitle-editable:hover {
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.modal-subtitle-editable:focus {
+  border-color: rgba(148, 163, 184, 0.5);
+  background: var(--surface-strong);
+}
+
+.modal-error {
+  color: #ef4444;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
 .modal-body {
   margin: 0;
   color: var(--text-soft);

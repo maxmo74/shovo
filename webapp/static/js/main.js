@@ -85,6 +85,8 @@ const shareMessengerButton = document.getElementById('share-messenger');
 const shareTelegramButton = document.getElementById('share-telegram');
 const shareInstagramButton = document.getElementById('share-instagram');
 const shareModalMessage = document.getElementById('share-modal-message');
+const shareModalListName = document.getElementById('share-modal-list-name');
+const shareModalError = document.getElementById('share-modal-error');
 const searchClearButton = document.getElementById('search-clear');
 const filterClearButton = document.getElementById('filter-clear');
 const privacyModal = document.getElementById('privacy-modal');
@@ -196,6 +198,19 @@ const closePrivacyModal = () => closeModal(privacyModal);
 
 const openShareModal = () => {
   if (!shareModal) return;
+
+  // Set list name in editable input
+  if (shareModalListName) {
+    shareModalListName.value = room;
+    shareModalListName.dataset.originalName = room;
+  }
+
+  // Clear any errors
+  if (shareModalError) {
+    shareModalError.hidden = true;
+    shareModalError.textContent = '';
+  }
+
   const token = encodeShareToken({
     room,
     password: isRoomPrivate(settings, room) ? getRoomPassword(settings, room) : ''
@@ -910,6 +925,57 @@ shareInstagramButton?.addEventListener('click', () => {
   const url = shareModal?.dataset.shareUrl;
   if (!url) return;
   shareModalMessage.textContent = "Instagram sharing isn't direct. Copy the link and share it in the app.";
+});
+
+// List name validation and rename handler
+const validateAndRenameList = async () => {
+  if (!shareModalListName || !shareModalError) return;
+
+  const newName = shareModalListName.value.trim();
+  const originalName = shareModalListName.dataset.originalName || room;
+
+  // Reset error
+  shareModalError.hidden = true;
+  shareModalError.textContent = '';
+
+  // Check if name hasn't changed
+  if (newName === originalName) {
+    shareModalListName.blur();
+    return;
+  }
+
+  // Check if name is empty
+  if (!newName) {
+    shareModalError.textContent = 'List name cannot be empty.';
+    shareModalError.hidden = false;
+    shareModalListName.value = originalName;
+    return;
+  }
+
+  // Check if name is already in use
+  const existingRooms = Object.keys(settings.rooms || {});
+  if (existingRooms.includes(newName)) {
+    shareModalError.textContent = 'This list name is already in use.';
+    shareModalError.hidden = false;
+    shareModalListName.value = originalName;
+    return;
+  }
+
+  // If validation passes, navigate to the new list name
+  // The backend will handle renaming or creating the new list
+  shareModalListName.blur();
+  window.location.href = `/r/${encodeURIComponent(newName)}`;
+};
+
+shareModalListName?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    validateAndRenameList();
+  }
+});
+
+shareModalListName?.addEventListener('blur', () => {
+  validateAndRenameList();
 });
 
 cardActionToggle?.addEventListener('click', async () => {
