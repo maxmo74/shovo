@@ -73,28 +73,30 @@ header h1 {
   font-style: normal;
   font-weight: 600;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.25rem;
   letter-spacing: -0.03em;
+  line-height: 1;
 }
 
 .logo-text {
   font-size: 1.5rem;
   font-weight: 600;
+  line-height: 1;
 }
 
 .logo-play {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   color: #ffffff;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   margin-right: 0.15rem;
-  transform: translateY(1px);
+  line-height: 1;
 }
 
 .brand-top {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 0.4rem;
 }
 
@@ -120,6 +122,8 @@ header h1 {
   color: var(--text-muted);
   font-size: 0.65rem;
   padding: 0;
+  align-self: flex-end;
+  line-height: 1;
   align-self: center;
   margin-bottom: 0;
 }
@@ -594,6 +598,74 @@ button.ghost {
   text-decoration: underline;
 }
 
+/* Mobile swipe actions */
+.card {
+  position: relative;
+  overflow: visible;
+}
+
+.card-content {
+  position: relative;
+  display: flex;
+  gap: 0.7rem;
+  background: rgba(8, 15, 28, 0.9);
+  border-radius: inherit;
+  overflow: hidden;
+  align-items: stretch;
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+.card-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
+}
+
+.card-swipe-left {
+  left: 0;
+  background: rgba(220, 38, 38, 0.9);
+  padding-left: 1rem;
+  padding-right: 0.5rem;
+}
+
+.card-swipe-right {
+  right: 0;
+  background: rgba(34, 197, 94, 0.9);
+  padding-right: 1rem;
+  padding-left: 0.5rem;
+}
+
+.card-swipe-action {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  min-width: 80px;
+  height: 100%;
+}
+
+.card-swipe-delete {
+  color: #fee2e2;
+}
+
+.card-swipe-move {
+  color: #d1fae5;
+}
+
+.card.swiping-left .card-content {
+  transform: translateX(-100px);
+}
+
+.card.swiping-right .card-content {
+  transform: translateX(100px);
+}
 
 .list-header {
   display: flex;
@@ -821,7 +893,7 @@ button.ghost {
   .version-tag {
     font-size: 0.6rem;
     margin-bottom: 0;
-    align-self: center;
+    align-self: flex-end;
   }
 
   /* Show room-name on mobile, consistent with desktop */

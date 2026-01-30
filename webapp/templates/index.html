@@ -94,8 +94,15 @@
 
     <template id="result-card-template">
       <article class="card">
-        <img class="card-image" alt="" loading="lazy" />
-        <div class="card-body">
+        <div class="card-swipe-actions card-swipe-left">
+          <button class="card-swipe-action card-swipe-delete" type="button" aria-label="Delete">✕</button>
+        </div>
+        <div class="card-swipe-actions card-swipe-right">
+          <button class="card-swipe-action card-swipe-move" type="button" aria-label="Move">✓</button>
+        </div>
+        <div class="card-content">
+          <img class="card-image" alt="" loading="lazy" />
+          <div class="card-body">
           <div class="card-info">
             <div class="card-title-row">
               <h3 class="card-title">
@@ -117,6 +124,7 @@
             <button class="card-action danger" aria-label="Remove from list" title="Remove from list">Remove</button>
             <button class="card-drag-handle" type="button" aria-label="Drag to reorder" title="Drag to reorder">☰</button>
           </div>
+        </div>
         </div>
       </article>
     </template>

@@ -29,7 +29,7 @@ import {
 } from './api.js';
 import { buildCard, buildMobileSearchResult, applyCardDetails, needsDetails } from './cards.js';
 import { attachDragHandlers, getCurrentOrder } from './drag.js';
-import { attachCardLongPressHandlers, isMobile, setupMobileEnhancements } from './mobile.js';
+import { attachCardLongPressHandlers, isMobile, setupMobileEnhancements, setupCardSwipeGestures } from './mobile.js';
 import { getCached, setCached, getDetailCacheKey } from './cache.js';
 
 // DOM Elements
@@ -400,7 +400,7 @@ const renderList = (items) => {
     listResults.appendChild(card);
     requestDetails(item, card);
   });
-  attachDragHandlers(listResults, syncOrder, { enableCardDrag: isMobile() });
+  attachDragHandlers(listResults, syncOrder, { enableCardDrag: false });
   attachCardLongPressHandlers(listResults, (card) => {
     const titleId = card?.dataset?.titleId;
     if (!titleId) return;
@@ -409,6 +409,22 @@ const renderList = (items) => {
       openCardActionModal(item);
     }
   });
+  if (isMobile()) {
+    setupCardSwipeGestures(
+      (titleId) => {
+        const item = currentListItems.find((entry) => entry.title_id === titleId);
+        if (item && cardHandlers.onRemove) {
+          cardHandlers.onRemove(item);
+        }
+      },
+      (titleId, newWatched) => {
+        const item = currentListItems.find((entry) => entry.title_id === titleId);
+        if (item && cardHandlers.onToggleWatched) {
+          cardHandlers.onToggleWatched({ ...item, watched: !item.watched });
+        }
+      }
+    );
+  }
 };
 
 // API calls

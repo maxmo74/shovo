@@ -195,115 +195,136 @@ function handleSwipeGesture(startX, endX) {
  */
 export function setupCardSwipeGestures(onRemove, onToggle) {
   const cards = document.querySelectorAll('.card');
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let currentCard = null;
-  let isSwiping = false;
-  let swipeDirection = null;
 
   cards.forEach(card => {
     // Skip setup if already configured
     if (card.dataset.swipeSetup) return;
     card.dataset.swipeSetup = 'true';
 
+    const cardContent = card.querySelector('.card-content');
+    const deleteButton = card.querySelector('.card-swipe-delete');
+    const moveButton = card.querySelector('.card-swipe-move');
+
+    if (!cardContent || !deleteButton || !moveButton) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentTranslateX = 0;
+    let isSwiping = false;
+    let swipeThreshold = 50;
+    let actionThreshold = 100;
+
+    // Update move button icon based on watched status
+    const updateMoveButtonIcon = () => {
+      const isWatched = card.dataset.watched === '1';
+      moveButton.textContent = isWatched ? '↺' : '✓';
+      moveButton.setAttribute('aria-label', isWatched ? 'Move to watchlist' : 'Mark watched');
+    };
+
+    updateMoveButtonIcon();
+
+    // Delete button click handler
+    deleteButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (onRemove) {
+        const titleId = card.dataset.titleId;
+        onRemove(titleId);
+      }
+      resetSwipe();
+    });
+
+    // Move button click handler
+    moveButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (onToggle) {
+        const titleId = card.dataset.titleId;
+        const currentWatched = card.dataset.watched === '1';
+        onToggle(titleId, !currentWatched);
+      }
+      resetSwipe();
+    });
+
+    const resetSwipe = () => {
+      cardContent.style.transform = '';
+      card.classList.remove('swiping-left', 'swiping-right');
+      currentTranslateX = 0;
+      isSwiping = false;
+    };
+
     card.addEventListener('touchstart', (e) => {
+      // Only handle single touch
       if (e.touches.length !== 1) return;
-      
+
+      // Don't interfere with drag handle
+      if (e.target.closest('.card-drag-handle')) return;
+
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
-      currentCard = card;
       isSwiping = false;
-      swipeDirection = null;
-      
-      // Store initial position
-      card.dataset.startX = touchStartX;
-      card.dataset.startY = touchStartY;
+      currentTranslateX = 0;
     }, { passive: true });
 
     card.addEventListener('touchmove', (e) => {
-      if (!currentCard || !touchStartX) return;
-      
+      if (!touchStartX) return;
+
       const touchCurrentX = e.touches[0].clientX;
       const touchCurrentY = e.touches[0].clientY;
       const deltaX = touchCurrentX - touchStartX;
       const deltaY = touchCurrentY - touchStartY;
 
-      // Only consider horizontal swipes
-      if (Math.abs(deltaX) < Math.abs(deltaY)) {
-        isSwiping = false;
-        return;
+      // Only consider horizontal swipes (more horizontal than vertical)
+      if (Math.abs(deltaX) < Math.abs(deltaY) || Math.abs(deltaX) < 10) {
+        if (!isSwiping) return;
       }
 
-      // Determine swipe direction
-      if (Math.abs(deltaX) > 10) {
+      // Prevent default to avoid scrolling while swiping
+      if (isSwiping) {
+        e.preventDefault();
+      }
+
+      // Start swiping if threshold exceeded
+      if (Math.abs(deltaX) > swipeThreshold) {
         isSwiping = true;
-        swipeDirection = deltaX > 0 ? 'right' : 'left';
-        
-        // Visual feedback
-        if (swipeDirection === 'left') {
-          card.style.transform = `translateX(${deltaX}px)`;
-          card.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 100);
-        } else if (swipeDirection === 'right') {
-          card.style.transform = `translateX(${deltaX}px)`;
-          card.style.opacity = Math.max(0.5, 1 - Math.abs(deltaX) / 100);
+
+        // Limit swipe distance
+        const maxSwipe = actionThreshold;
+        currentTranslateX = Math.max(-maxSwipe, Math.min(maxSwipe, deltaX));
+
+        cardContent.style.transform = `translateX(${currentTranslateX}px)`;
+
+        // Add visual feedback class
+        card.classList.remove('swiping-left', 'swiping-right');
+        if (currentTranslateX < -swipeThreshold) {
+          card.classList.add('swiping-left');
+        } else if (currentTranslateX > swipeThreshold) {
+          card.classList.add('swiping-right');
         }
       }
     }, { passive: false });
 
     card.addEventListener('touchend', (e) => {
-      if (!currentCard || !isSwiping || !swipeDirection) {
-        // Reset state
-        if (currentCard) {
-          currentCard.style.transform = '';
-          currentCard.style.opacity = '';
-        }
-        currentCard = null;
+      if (!isSwiping) {
+        resetSwipe();
         touchStartX = 0;
         touchStartY = 0;
-        isSwiping = false;
-        swipeDirection = null;
         return;
       }
 
-      const touchEndX = e.changedTouches[0].clientX;
-      const swipeDistance = touchEndX - touchStartX;
-      const swipeThreshold = 80; // Require larger swipe for action
-
-      // Reset visual state
-      currentCard.style.transform = '';
-      currentCard.style.opacity = '';
-
-      // Determine which list we're in
-      const activeTab = document.querySelector('.tab.active');
-      const isWatchlist = activeTab && activeTab.id === 'tab-watchlist';
-      const isWatched = activeTab && activeTab.id === 'tab-watched';
-
-      // Handle swipe actions
-      if (Math.abs(swipeDistance) >= swipeThreshold) {
-        if (swipeDirection === 'left') {
-          // Left swipe - remove from current list
-          if (onRemove) {
-            const titleId = currentCard.dataset.titleId;
-            onRemove(titleId);
-          }
-        } else if (swipeDirection === 'right') {
-          // Right swipe - toggle between watchlist/watched
-          if (onToggle) {
-            const titleId = currentCard.dataset.titleId;
-            const currentStatus = isWatchlist ? 'watchlist' : 'watched';
-            const newStatus = currentStatus === 'watchlist' ? 'watched' : 'watchlist';
-            onToggle(titleId, newStatus);
-          }
-        }
+      // If swiped far enough, keep it revealed, otherwise reset
+      if (Math.abs(currentTranslateX) < actionThreshold * 0.6) {
+        resetSwipe();
       }
 
-      // Reset state
-      currentCard = null;
       touchStartX = 0;
       touchStartY = 0;
-      isSwiping = false;
-      swipeDirection = null;
     }, { passive: true });
+
+    // Reset swipe when clicking elsewhere
+    document.addEventListener('click', (e) => {
+      if (!card.contains(e.target)) {
+        resetSwipe();
+      }
+    });
   });
 }
 
@@ -440,11 +461,12 @@ export function setupMobileEnhancements(loadList, options = {}) {
   if (isMobile()) {
     document.body.classList.add('is-mobile');
     setupTouchFeedback();
-    setupSwipeGestures();
+    // Removed tab-switching swipe gestures
+    // setupSwipeGestures();
     setupDoubleTapPrevention();
     setupPullToRefresh();
     setupMobileEventListeners();
-    
+
   }
 
   setupOrientationHandler();
