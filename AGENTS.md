@@ -60,6 +60,25 @@ This document outlines the operating guidelines and permissions for AI agents wo
 3. **Push Updates**: Push changes to remote repository after successful testing
 4. **Documentation**: Update version references in documentation and changelogs
 
+## Testing with Headless Browser
+
+Agents can now test their changes using the internal headless browser before deployment. This allows for visual verification of UI changes, especially for mobile layouts.
+
+To test mobile UI:
+1. Use Playwright or similar tools to capture screenshots at mobile viewport sizes
+2. Review screenshots to verify layout, spacing, and component sizing
+3. Test both portrait and landscape orientations if relevant
+
+### Known Mobile UI Issues
+
+The following mobile UI issues have been identified through headless browser testing:
+
+1. **Card Layout Gap**: Cards in the mobile version have a significant gap on the right side. The cards should extend closer to the edge with minimal padding.
+
+2. **Mini-Poster Size**: The mini-poster thumbnail is very tiny and not proportionate. It should scale relative to the card height to be more visible and balanced.
+
+3. **Search Box Size**: The search box is too small in mobile view. It should be larger, starting from the Watched tab and extending to just before the Trending fire button, making it more accessible for mobile users.
+
 ## Mobile UX/UI Focus Areas
 
 For the current mobile optimization project, agents should prioritize:
