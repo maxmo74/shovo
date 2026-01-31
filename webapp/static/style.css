@@ -1034,13 +1034,23 @@ button.ghost {
 
 .modal-header--compact + .modal-subtitle,
 .modal-header--compact + .modal-subtitle-editable {
-  margin-top: 0;
-  padding-top: 0;
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 2.5rem;
+  margin: 0;
+  padding: 0;
+  line-height: 1.1rem;
+}
+
+.modal-header--compact + .modal-subtitle + *,
+.modal-header--compact + .modal-subtitle-editable + * {
+  margin-top: 2rem;
 }
 
 .modal-subtitle-editable {
   margin: 0;
-  padding: 0.5rem 0.75rem;
+  padding: 0;
   color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 400;
@@ -1055,7 +1065,8 @@ button.ghost {
 .modal-subtitle-editable:focus {
   border: 1px solid rgba(148, 163, 184, 0.5);
   background: var(--surface-strong);
-  padding: calc(0.5rem - 1px) calc(0.75rem - 1px);
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem -0.5rem;
 }
 
 .modal-error {
@@ -1378,28 +1389,31 @@ button.ghost {
     font-size: 0.7rem;
   }
 
+  /* Show card-row-actions as flex on mobile but hide action buttons */
   .card-row-actions {
-    gap: 0.2rem;
+    display: flex !important;
+    gap: 0;
+    padding: 0;
+    margin: 0;
   }
 
-  .card-row-actions {
+  /* Hide all action buttons except drag handle on mobile */
+  .card-row-actions .card-action {
     display: none;
   }
 
   /* Show drag handle on mobile as a visible section on the right */
   .card-drag-handle {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    position: static;
     flex-shrink: 0;
     background: rgba(148, 163, 184, 0.12);
     color: rgba(148, 163, 184, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.25);
-    opacity: 1;
-    width: 32px;
+    width: 36px;
     height: auto;
-    margin-left: auto;
+    font-size: 0.85rem;
   }
 
   .card-drag-handle:active {
@@ -2102,6 +2116,7 @@ body.is-mobile .card-swipe-actions {
 body.is-mobile .card.swiping-left .card-swipe-left,
 body.is-mobile .card.swiping-right .card-swipe-right {
   display: flex;
+  pointer-events: auto;
 }
 
 body.is-mobile .card-swipe-left {
@@ -2128,14 +2143,17 @@ body.is-mobile .card-swipe-action {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
 }
 
 body.is-mobile .card.swiping-left .card-content {
   transform: translateX(-100px);
+  pointer-events: none;
 }
 
 body.is-mobile .card.swiping-right .card-content {
   transform: translateX(100px);
+  pointer-events: none;
 }
 
 body.is-mobile .card:active:not(.swiping-left):not(.swiping-right) {
