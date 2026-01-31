@@ -121,8 +121,9 @@ function startDrag(targetCard, event, dragHandle) {
   draggingCard = targetCard;
   draggingPointerId = event.pointerId;
   dragOriginRect = targetCard.getBoundingClientRect();
-  draggingStartY = event.clientY;
-  draggingOffsetY = 0;
+  // Calculate initial offset between click point and card top to prevent jump
+  draggingStartY = dragOriginRect.top;
+  draggingOffsetY = event.clientY - dragOriginRect.top;
   activeDragHandle = dragHandle;
   listContainer.classList.add('is-dragging');
   targetCard.classList.add('dragging');
@@ -136,6 +137,8 @@ function startDrag(targetCard, event, dragHandle) {
   targetCard.style.left = `${dragOriginRect.left}px`;
   targetCard.style.top = `${dragOriginRect.top}px`;
   targetCard.style.width = `${dragOriginRect.width}px`;
+  // Apply initial transform to account for click offset
+  targetCard.style.transform = `translateY(${draggingOffsetY}px)`;
   if (activeDragHandle?.setPointerCapture) {
     activeDragHandle.setPointerCapture(event.pointerId);
   }
