@@ -598,73 +598,13 @@ button.ghost {
   text-decoration: underline;
 }
 
-/* Mobile swipe actions */
-.card {
-  position: relative;
-  overflow: visible;
+/* Mobile swipe actions - hidden by default, only on mobile */
+.card-swipe-actions {
+  display: none;
 }
 
 .card-content {
-  position: relative;
-  display: flex;
-  gap: 0.7rem;
-  background: rgba(8, 15, 28, 0.9);
-  border-radius: inherit;
-  overflow: hidden;
-  align-items: stretch;
-  transition: transform 0.3s ease;
-  z-index: 1;
-}
-
-.card-swipe-actions {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 0;
-}
-
-.card-swipe-left {
-  left: 0;
-  background: rgba(220, 38, 38, 0.9);
-  padding-left: 1rem;
-  padding-right: 0.5rem;
-}
-
-.card-swipe-right {
-  right: 0;
-  background: rgba(34, 197, 94, 0.9);
-  padding-right: 1rem;
-  padding-left: 0.5rem;
-}
-
-.card-swipe-action {
-  background: transparent;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  min-width: 80px;
-  height: 100%;
-}
-
-.card-swipe-delete {
-  color: #fee2e2;
-}
-
-.card-swipe-move {
-  color: #d1fae5;
-}
-
-.card.swiping-left .card-content {
-  transform: translateX(-100px);
-}
-
-.card.swiping-right .card-content {
-  transform: translateX(100px);
+  display: contents;
 }
 
 .list-header {
@@ -1538,10 +1478,9 @@ button.ghost {
     }
 
     .search-row {
-      flex: 1 1 100%;
-      width: 100%;
+      flex: 1;
       min-width: 0;
-      order: 3;
+      order: 2;
       display: flex;
       align-items: center;
       gap: 0.5rem;
@@ -1550,23 +1489,27 @@ button.ghost {
     .inline-search {
       flex: 1;
       min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .inline-search .input-with-clear {
+      flex: 1;
+      min-width: 0;
     }
 
     #search-input {
       width: 100%;
       min-width: 0;
-    }
-
-    input[type="search"] {
-      padding: 0.75rem 1rem;
-      font-size: 0.95rem;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.9rem;
     }
 
     /* Ensure trending button stays aligned to the right */
     .trending-button {
       flex-shrink: 0;
-      order: 2;
-      align-self: flex-start;
+      order: 3;
     }
 
     body.is-mobile .card-action-modal {
@@ -2100,9 +2043,65 @@ button.ghost {
 /* Mobile-specific classes - touch feedback only */
 body.is-mobile .card {
   transition: transform 200ms ease, background 150ms ease;
+  position: relative;
+  overflow: hidden;
 }
 
-body.is-mobile .card:active {
+body.is-mobile .card-content {
+  display: flex;
+  gap: 0.7rem;
+  align-items: stretch;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+body.is-mobile .card-swipe-actions {
+  display: flex;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  align-items: center;
+  justify-content: center;
+  z-index: 0;
+  width: 100px;
+}
+
+body.is-mobile .card-swipe-left {
+  left: 0;
+  background: rgba(220, 38, 38, 0.95);
+  padding-left: 0.5rem;
+}
+
+body.is-mobile .card-swipe-right {
+  right: 0;
+  background: rgba(34, 197, 94, 0.95);
+  padding-right: 0.5rem;
+}
+
+body.is-mobile .card-swipe-action {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.3rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body.is-mobile .card.swiping-left .card-content {
+  transform: translateX(-100px);
+}
+
+body.is-mobile .card.swiping-right .card-content {
+  transform: translateX(100px);
+}
+
+body.is-mobile .card:active:not(.swiping-left):not(.swiping-right) {
   transform: scale(0.98);
   background: rgba(15, 23, 42, 0.8);
 }
