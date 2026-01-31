@@ -420,7 +420,7 @@ const renderList = (items) => {
       (titleId, newWatched) => {
         const item = currentListItems.find((entry) => entry.title_id === titleId);
         if (item && cardHandlers.onToggleWatched) {
-          cardHandlers.onToggleWatched({ ...item, watched: !item.watched });
+          cardHandlers.onToggleWatched({ ...item, watched: newWatched });
         }
       }
     );
@@ -742,6 +742,10 @@ const setActiveTab = (nextTab) => {
   activeTab = nextTab;
   tabWatchlist.classList.toggle('active', activeTab === 'unwatched');
   tabWatched.classList.toggle('active', activeTab === 'watched');
+  // Clear filter when switching tabs to show all items
+  if (filterInput) {
+    filterInput.value = '';
+  }
   loadList();
 };
 

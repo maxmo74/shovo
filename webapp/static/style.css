@@ -1082,9 +1082,19 @@ button.ghost {
   max-width: calc(100% - 3rem);
   background: transparent;
   border: none;
-  border-radius: var(--radius);
-  transition: background 0.2s ease;
+  border-radius: 0;
+  transition: none;
   outline: none;
+  box-shadow: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.modal-subtitle-editable:hover {
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .modal-subtitle-editable:focus {
@@ -1092,6 +1102,7 @@ button.ghost {
   background: transparent;
   padding: 0;
   margin: 0;
+  box-shadow: none;
 }
 
 .modal-error {
@@ -1469,11 +1480,18 @@ button.ghost {
     display: none !important;
   }
 
+  /* Position mobile drag handle at top-right of card-body */
+  .card-body {
+    position: relative;
+  }
+
   .card-drag-handle-mobile {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
     background: rgba(148, 163, 184, 0.12);
     color: rgba(148, 163, 184, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.25);
@@ -1482,8 +1500,7 @@ button.ghost {
     height: 32px;
     font-size: 0.85rem;
     padding: 0;
-    order: 3;
-    margin-left: auto;
+    z-index: 1;
   }
 
   .card-drag-handle-mobile:active {

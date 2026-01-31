@@ -497,7 +497,8 @@ export function setupMobileEnhancements(loadList, options = {}) {
     // Removed tab-switching swipe gestures
     // setupSwipeGestures();
     setupDoubleTapPrevention();
-    setupPullToRefresh();
+    // Removed pull-to-refresh functionality
+    // setupPullToRefresh();
     setupMobileEventListeners();
 
   }
