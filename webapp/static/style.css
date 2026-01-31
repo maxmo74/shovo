@@ -553,6 +553,7 @@ button.ghost {
   position: fixed;
   z-index: 2;
   pointer-events: none;
+  transition: none;
 }
 
 .card.drag-placeholder {
