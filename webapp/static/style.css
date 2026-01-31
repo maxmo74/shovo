@@ -1032,6 +1032,22 @@ button.ghost {
   font-size: 0.9rem;
 }
 
+.modal-header--compact + .modal-subtitle,
+.modal-header--compact + .modal-subtitle-editable {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  right: 3rem;
+  margin: 0;
+  line-height: 1.1rem;
+}
+
+/* Add top spacing for content after compact header + subtitle */
+.modal-header--compact + .modal-subtitle + *,
+.modal-header--compact + .modal-subtitle-editable + * {
+  margin-top: 1.5rem;
+}
+
 .modal-subtitle-editable {
   margin: 0;
   padding: 0.5rem 0.75rem;
@@ -1337,6 +1353,7 @@ button.ghost {
     flex-direction: row;
     gap: 0.4rem;
     padding: 0.4rem 0.3rem;
+    position: relative;
   }
 
   .card-image {
@@ -1382,11 +1399,32 @@ button.ghost {
     display: none;
   }
 
+  /* Show drag handle on mobile on the right side */
+  .card-drag-handle {
+    display: block;
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(148, 163, 184, 0.08);
+    color: rgba(148, 163, 184, 0.6);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    opacity: 0.7;
+    z-index: 2;
+  }
+
+  .card-drag-handle:active {
+    opacity: 1;
+    background: rgba(148, 163, 184, 0.16);
+    color: rgba(148, 163, 184, 0.9);
+  }
+
   /* Mobile-specific card layout reorganization */
   .card-info {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+    padding-right: 2.5rem;
   }
 
   .card-title-row {
@@ -2057,7 +2095,7 @@ body.is-mobile .card-content {
 }
 
 body.is-mobile .card-swipe-actions {
-  display: flex;
+  display: none;
   position: absolute;
   top: 0;
   bottom: 0;
@@ -2065,6 +2103,11 @@ body.is-mobile .card-swipe-actions {
   justify-content: center;
   z-index: 0;
   width: 100px;
+}
+
+body.is-mobile .card.swiping-left .card-swipe-left,
+body.is-mobile .card.swiping-right .card-swipe-right {
+  display: flex;
 }
 
 body.is-mobile .card-swipe-left {
