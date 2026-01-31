@@ -1034,18 +1034,8 @@ button.ghost {
 
 .modal-header--compact + .modal-subtitle,
 .modal-header--compact + .modal-subtitle-editable {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  right: 3rem;
-  margin: 0;
-  line-height: 1.1rem;
-}
-
-/* Add top spacing for content after compact header + subtitle */
-.modal-header--compact + .modal-subtitle + *,
-.modal-header--compact + .modal-subtitle-editable + * {
-  margin-top: 1.5rem;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .modal-subtitle-editable {
@@ -1056,19 +1046,16 @@ button.ghost {
   font-weight: 400;
   width: 100%;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--radius);
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease;
   outline: none;
 }
 
-.modal-subtitle-editable:hover {
-  border-color: rgba(148, 163, 184, 0.3);
-}
-
 .modal-subtitle-editable:focus {
-  border-color: rgba(148, 163, 184, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.5);
   background: var(--surface-strong);
+  padding: calc(0.5rem - 1px) calc(0.75rem - 1px);
 }
 
 .modal-error {
@@ -1399,24 +1386,25 @@ button.ghost {
     display: none;
   }
 
-  /* Show drag handle on mobile on the right side */
+  /* Show drag handle on mobile as a visible section on the right */
   .card-drag-handle {
-    display: block;
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(148, 163, 184, 0.08);
-    color: rgba(148, 163, 184, 0.6);
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    opacity: 0.7;
-    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: static;
+    flex-shrink: 0;
+    background: rgba(148, 163, 184, 0.12);
+    color: rgba(148, 163, 184, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    opacity: 1;
+    width: 32px;
+    height: auto;
+    margin-left: auto;
   }
 
   .card-drag-handle:active {
-    opacity: 1;
-    background: rgba(148, 163, 184, 0.16);
-    color: rgba(148, 163, 184, 0.9);
+    background: rgba(148, 163, 184, 0.2);
+    color: rgba(148, 163, 184, 1);
   }
 
   /* Mobile-specific card layout reorganization */
@@ -1424,7 +1412,13 @@ button.ghost {
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-    padding-right: 2.5rem;
+    flex: 1;
+  }
+
+  .card-body {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
   }
 
   .card-title-row {
@@ -2101,7 +2095,7 @@ body.is-mobile .card-swipe-actions {
   bottom: 0;
   align-items: center;
   justify-content: center;
-  z-index: 0;
+  z-index: 2;
   width: 100px;
 }
 
