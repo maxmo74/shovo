@@ -10,6 +10,13 @@ This document outlines the operating guidelines and permissions for AI agents wo
 
 3. **Transparency**: Agents must always show diffs or summaries of proposed changes before making them.
 
+4. **Deployment Workflow**: After completing any task, agents must ALWAYS:
+   - Update the patch version (no confirmation needed)
+   - Commit all changes with a descriptive message (no confirmation needed)
+   - Push changes to the remote repository (no confirmation needed)
+
+   This ensures changes are immediately deployable by the user.
+
 ## Permissions and Restrictions
 
 ### Allowed Operations
@@ -34,7 +41,10 @@ This document outlines the operating guidelines and permissions for AI agents wo
 2. **Proposal Phase**: Present clear, detailed plans with expected outcomes
 3. **Review Phase**: Show diffs and explain rationale for changes
 4. **Execution Phase**: Implement changes only after explicit user approval
-5. **Version Management**: After task completion, bump patch version, commit changes, and push to repository
+5. **Deployment Phase**: After task completion, AUTOMATICALLY (no confirmation needed):
+   - Bump patch version in all relevant files
+   - Commit changes with descriptive message
+   - Push to remote repository for deployment
 
 ### Communication Protocol
 
@@ -77,5 +87,8 @@ All changes must be explicitly approved by the user before execution, with the f
 - Minor formatting fixes
 - Documentation updates
 - Read-only operations
+- **Version bumps, git commits, and git pushes** (these should ALWAYS happen automatically after task completion)
 
-Agents must always err on the side of caution and seek approval when in doubt.
+**Important**: After completing any task, agents must automatically bump the patch version, commit changes, and push to remote WITHOUT asking for confirmation. This is required for deployment workflow.
+
+Agents must always err on the side of caution and seek approval when in doubt, except for the deployment workflow steps listed above.

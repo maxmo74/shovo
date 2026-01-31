@@ -521,6 +521,19 @@ button.ghost {
   height: var(--control-size);
   cursor: grab;
   touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Hide mobile drag handle on desktop */
+.card-drag-handle-mobile {
+  display: none;
+}
+
+/* Show desktop drag handle */
+.card-drag-handle-desktop {
+  display: flex;
 }
 
 .card.dragging {
@@ -1361,10 +1374,6 @@ button.ghost {
     object-fit: cover;
   }
 
-  .card-body {
-    padding: 0.2rem 0.3rem 0.25rem 0;
-  }
-
   .card-title {
     font-size: 0.7rem;
     line-height: 1.1;
@@ -1389,50 +1398,25 @@ button.ghost {
     font-size: 0.7rem;
   }
 
-  /* Show card-row-actions as flex on mobile but hide action buttons */
+  /* Hide card-row-actions on mobile - we'll reposition drag handle */
   .card-row-actions {
-    display: flex !important;
-    gap: 0;
-    padding: 0;
-    margin: 0;
-  }
-
-  /* Hide all action buttons except drag handle on mobile */
-  .card-row-actions .card-action {
-    display: none;
-  }
-
-  /* Show drag handle on mobile as a visible section on the right */
-  .card-drag-handle {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: rgba(148, 163, 184, 0.12);
-    color: rgba(148, 163, 184, 0.7);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    width: 36px;
-    height: auto;
-    font-size: 0.85rem;
-  }
-
-  .card-drag-handle:active {
-    background: rgba(148, 163, 184, 0.2);
-    color: rgba(148, 163, 184, 1);
+    display: none !important;
   }
 
   /* Mobile-specific card layout reorganization */
   .card-info {
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 0.25rem;
     flex: 1;
   }
 
   .card-body {
     display: flex;
-    gap: 0.5rem;
-    align-items: stretch;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    padding: 0.45rem 0.5rem 0.45rem 0;
   }
 
   .card-title-row {
@@ -1451,18 +1435,46 @@ button.ghost {
   .card-meta-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.4rem;
+    gap: 0.35rem;
   }
 
   .card-meta {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
+    font-size: 0.7rem;
   }
 
   .card-rating {
+    display: flex;
     flex-shrink: 0;
-    justify-content: flex-end;
+    gap: 0.3rem;
+    margin-left: auto;
+  }
+
+  /* Hide desktop drag handle and show mobile drag handle inline in meta-row */
+  .card-drag-handle-desktop {
+    display: none !important;
+  }
+
+  .card-drag-handle-mobile {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(148, 163, 184, 0.12);
+    color: rgba(148, 163, 184, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: var(--radius);
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+    padding: 0;
+    order: 3;
+  }
+
+  .card-drag-handle-mobile:active {
+    background: rgba(148, 163, 184, 0.2);
+    color: rgba(148, 163, 184, 1);
   }
 }
 
@@ -2100,6 +2112,7 @@ body.is-mobile .card-content {
   transition: transform 0.3s ease;
   position: relative;
   z-index: 1;
+  background: rgba(8, 15, 28, 0.9);
 }
 
 body.is-mobile .card-swipe-actions {
@@ -2109,13 +2122,19 @@ body.is-mobile .card-swipe-actions {
   bottom: 0;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  z-index: 0;
   width: 100px;
+  pointer-events: none;
 }
 
 body.is-mobile .card.swiping-left .card-swipe-left,
 body.is-mobile .card.swiping-right .card-swipe-right {
   display: flex;
+  z-index: 2;
+}
+
+body.is-mobile .card.swiping-left .card-swipe-left .card-swipe-action,
+body.is-mobile .card.swiping-right .card-swipe-right .card-swipe-action {
   pointer-events: auto;
 }
 
@@ -2149,11 +2168,13 @@ body.is-mobile .card-swipe-action {
 body.is-mobile .card.swiping-left .card-content {
   transform: translateX(-100px);
   pointer-events: none;
+  z-index: 0;
 }
 
 body.is-mobile .card.swiping-right .card-content {
   transform: translateX(100px);
   pointer-events: none;
+  z-index: 0;
 }
 
 body.is-mobile .card:active:not(.swiping-left):not(.swiping-right) {
