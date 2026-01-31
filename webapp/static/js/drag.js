@@ -121,26 +121,52 @@ function startDrag(targetCard, event, dragHandle) {
   if (!targetCard || draggingCard) return;
   draggingCard = targetCard;
   draggingPointerId = event.pointerId;
+  activeDragHandle = dragHandle;
+
+  // Remove any existing transform first (without adding dragging class yet)
+  // This ensures we get the true position without hover transforms
+  targetCard.style.transform = '';
+  targetCard.style.transition = 'none';
+
+  // Force a reflow to apply the transform removal immediately
+  void targetCard.offsetHeight;
+
+  // Get the bounding rect BEFORE adding dragging class
+  // (dragging class has position:fixed which would mess up the rect)
   dragOriginRect = targetCard.getBoundingClientRect();
   draggingStartY = event.clientY;
   draggingOffsetY = 0;
   // Store offset from card top to click point
   draggingClickOffset = event.clientY - dragOriginRect.top;
-  activeDragHandle = dragHandle;
+
+  // Now add dragging class and prepare for drag
   listContainer.classList.add('is-dragging');
   targetCard.classList.add('dragging');
+
   dragPlaceholder = document.createElement('div');
   dragPlaceholder.className = 'card drag-placeholder';
   dragPlaceholder.style.height = `${dragOriginRect.height}px`;
   dragPlaceholder.style.width = `${dragOriginRect.width}px`;
   listContainer.insertBefore(dragPlaceholder, targetCard.nextSibling);
-  listContainer.classList.add('is-dragging');
+
+  // Set inline styles for fixed positioning
+  // IMPORTANT: Don't use dragOriginRect.top directly as it might include scroll offset
+  // Instead, keep the card in its original visual position
   targetCard.style.position = 'fixed';
   targetCard.style.left = `${dragOriginRect.left}px`;
   targetCard.style.top = `${dragOriginRect.top}px`;
   targetCard.style.width = `${dragOriginRect.width}px`;
   targetCard.style.zIndex = '1000';
   targetCard.style.transform = 'translateY(0)';
+
+  // Verify the position is correct after applying fixed positioning
+  const verifyRect = targetCard.getBoundingClientRect();
+  if (Math.abs(verifyRect.top - dragOriginRect.top) > 2) {
+    // Position mismatch detected - adjust the top value
+    const correction = dragOriginRect.top - verifyRect.top;
+    targetCard.style.top = `${dragOriginRect.top + correction}px`;
+  }
+
   if (activeDragHandle?.setPointerCapture) {
     activeDragHandle.setPointerCapture(event.pointerId);
   }

@@ -223,7 +223,23 @@ export function setupCardSwipeGestures(onRemove, onToggle) {
 
     updateMoveButtonIcon();
 
-    // Delete button click handler
+    // Delete button touch start handler (prevent card swipe interference)
+    deleteButton.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
+
+    // Delete button touch handler
+    deleteButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onRemove) {
+        const titleId = card.dataset.titleId;
+        onRemove(titleId);
+      }
+      resetSwipe();
+    }, { passive: false });
+
+    // Delete button click handler (fallback for mouse)
     deleteButton.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onRemove) {
@@ -233,7 +249,24 @@ export function setupCardSwipeGestures(onRemove, onToggle) {
       resetSwipe();
     });
 
-    // Move button click handler
+    // Move button touch start handler (prevent card swipe interference)
+    moveButton.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+    }, { passive: true });
+
+    // Move button touch handler
+    moveButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onToggle) {
+        const titleId = card.dataset.titleId;
+        const currentWatched = card.dataset.watched === '1';
+        onToggle(titleId, !currentWatched);
+      }
+      resetSwipe();
+    }, { passive: false });
+
+    // Move button click handler (fallback for mouse)
     moveButton.addEventListener('click', (e) => {
       e.stopPropagation();
       if (onToggle) {

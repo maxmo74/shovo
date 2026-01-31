@@ -550,10 +550,12 @@ button.ghost {
   border-color: rgba(var(--accent-rgb), 0.6);
   box-shadow: 0 18px 30px rgba(2, 8, 23, 0.45);
   cursor: grabbing;
-  position: fixed;
-  z-index: 2;
   pointer-events: none;
-  transition: none;
+  transition: none !important;
+}
+
+.card.dragging:hover {
+  transform: none;
 }
 
 .card.drag-placeholder {
@@ -1447,6 +1449,7 @@ button.ghost {
     align-items: center;
     gap: 0.35rem;
     justify-content: flex-start;
+    width: 100%;
   }
 
   .card-meta {
@@ -1480,6 +1483,7 @@ button.ghost {
     font-size: 0.85rem;
     padding: 0;
     order: 3;
+    margin-left: auto;
   }
 
   .card-drag-handle-mobile:active {
