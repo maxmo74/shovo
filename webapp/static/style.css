@@ -1475,24 +1475,19 @@ button.ghost {
     gap: 0.3rem;
   }
 
-  /* Hide desktop drag handle and show mobile drag handle inline in meta-row */
+  /* Hide desktop drag handle and show mobile drag handle */
   .card-drag-handle-desktop {
     display: none !important;
   }
 
-  /* Position mobile drag handle at top-right of card-body */
-  .card-body {
-    position: relative !important;
-    padding-right: 36px !important; /* Make space for drag handle */
-  }
-
+  /* Position mobile drag handle at right edge of card, vertically centered */
   .card-drag-handle-mobile {
     display: flex !important;
     align-items: center;
     justify-content: center;
     position: absolute !important;
     top: 50% !important;
-    right: -0.4rem !important;
+    right: 0.4rem !important;
     transform: translateY(-50%);
     background: rgba(148, 163, 184, 0.12);
     color: rgba(148, 163, 184, 0.7);
@@ -1872,7 +1867,7 @@ button.ghost {
 
   /* Adjust mobile drag handle for 480px card padding (0.65rem) */
   .card-drag-handle-mobile {
-    right: -0.65rem !important;
+    right: 0.65rem !important;
   }
 
   .card-row-actions {
@@ -2034,7 +2029,7 @@ button.ghost {
 
   /* Adjust mobile drag handle for 360px card padding (0.5rem) */
   .card-drag-handle-mobile {
-    right: -0.5rem !important;
+    right: 0.5rem !important;
   }
 
   .rating-badge img {
