@@ -1491,8 +1491,9 @@ button.ghost {
     align-items: center;
     justify-content: center;
     position: absolute !important;
-    top: 0 !important;
-    right: -0.4rem !important;
+    top: 50% !important;
+    right: 0.65rem !important;
+    transform: translateY(-50%);
     background: rgba(148, 163, 184, 0.12);
     color: rgba(148, 163, 184, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.25);
@@ -1871,7 +1872,7 @@ button.ghost {
 
   /* Adjust mobile drag handle for 480px card padding (0.65rem) */
   .card-drag-handle-mobile {
-    right: -0.65rem !important;
+    right: 0.65rem !important;
   }
 
   .card-row-actions {
@@ -2033,7 +2034,7 @@ button.ghost {
 
   /* Adjust mobile drag handle for 360px card padding (0.5rem) */
   .card-drag-handle-mobile {
-    right: -0.5rem !important;
+    right: 0.5rem !important;
   }
 
   .rating-badge img {
