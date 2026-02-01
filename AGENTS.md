@@ -106,6 +106,25 @@ For mobile UI changes:
 3. Analyze responsive breakpoints and their interactions
 4. Verify the CSS cascade at different viewport sizes
 
+### CSS Positioning Best Practices
+
+When working with absolute positioning in nested elements:
+
+1. **Understanding the Box Model**: Always consider the full DOM hierarchy and padding/margins at each level
+   - Parent padding affects where absolutely positioned children appear
+   - To position an element at the edge of a grandparent, account for parent padding
+
+2. **Negative Positioning Values**:
+   - `right: -10px` moves an absolutely positioned element 10px to the RIGHT (outside parent)
+   - `right: 10px` moves it 10px FROM the right edge (leftward)
+   - Use negative values to extend elements beyond their parent container
+
+3. **Vertical Centering**:
+   - Use `top: 50%` + `transform: translateY(-50%)` for true vertical centering
+   - This works regardless of element height or parent height
+
+4. **Responsive Positioning**: When elements have different padding at different breakpoints, positioning offsets must be adjusted accordingly
+
 ### Known Mobile UI Issues
 
 The following mobile UI issues have been identified through headless browser testing:
