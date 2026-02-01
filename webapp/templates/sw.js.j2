@@ -1,6 +1,6 @@
-const CACHE_NAME = 'shovo-v1.6.26';
-const STATIC_CACHE = 'shovo-static-v1.6.26';
-const API_CACHE = 'shovo-api-v1.6.26';
+const CACHE_NAME = 'shovo-v{{ app_version }}';
+const STATIC_CACHE = 'shovo-static-v{{ app_version }}';
+const API_CACHE = 'shovo-api-v{{ app_version }}';
 
 const STATIC_ASSETS = [
   '/',
@@ -184,5 +184,12 @@ self.addEventListener('message', (event) => {
   }
   if (event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (event.data.type === 'CHECK_VERSION') {
+    // Send current version back to client
+    event.ports[0].postMessage({
+      type: 'VERSION_INFO',
+      version: '{{ app_version }}'
+    });
   }
 });

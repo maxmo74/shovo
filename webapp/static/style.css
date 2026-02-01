@@ -2334,3 +2334,110 @@ body.is-mobile .results-grid,
 body.is-mobile .list-grid {
   contain: content;
 }
+
+/* Update notification banner */
+.update-notification {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, rgba(244, 192, 82, 0.95) 0%, rgba(240, 165, 50, 0.95) 100%);
+  color: #050a18;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.update-notification-content {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.update-notification-text {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.update-notification-button {
+  background: #050a18;
+  color: #f4c052;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.update-notification-button:hover {
+  background: #0a1020;
+  transform: scale(1.05);
+}
+
+.update-notification-button:active {
+  transform: scale(0.98);
+}
+
+.update-notification-dismiss {
+  background: transparent;
+  border: none;
+  color: #050a18;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  margin-left: auto;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  font-family: inherit;
+}
+
+.update-notification-dismiss:hover {
+  opacity: 1;
+}
+
+/* Adjust main content to account for banner when visible */
+body:has(.update-notification[style*="display: flex"]) main {
+  padding-top: calc(1.5rem + 3.5rem);
+}
+
+@media (max-width: 768px) {
+  .update-notification {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .update-notification-content {
+    gap: 0.75rem;
+  }
+
+  .update-notification-text {
+    font-size: 0.85rem;
+  }
+
+  .update-notification-button {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  body:has(.update-notification[style*="display: flex"]) main {
+    padding-top: calc(1.5rem + 3rem);
+  }
+}

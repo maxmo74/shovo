@@ -8,11 +8,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Shovo</title>
-    <link rel="stylesheet" href="/static/style.css" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/static/style.css?v={{ app_version }}" />
+    <link rel="manifest" href="/manifest.json?v={{ app_version }}" />
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
   </head>
   <body>
+    <div id="update-notification-banner" class="update-notification" style="display: none;">
+      <div class="update-notification-content">
+        <span class="update-notification-text">New version available!</span>
+        <button class="update-notification-button" type="button" onclick="reloadApp()">Update now</button>
+        <button class="update-notification-dismiss" type="button" onclick="hideUpdateNotification()" aria-label="Dismiss">×</button>
+      </div>
+    </div>
     <main>
       <header class="app-header">
         <div class="brand-row">
@@ -317,18 +324,72 @@
 
     <script>
       window.APP_ROOM = "{{ room }}";
+      window.APP_VERSION = "{{ app_version }}";
     </script>
-    <script type="module" src="/static/js/main.js"></script>
-    <script nomodule src="/static/app.js"></script>
+    <script type="module" src="/static/js/main.js?v={{ app_version }}"></script>
+    <script nomodule src="/static/app.js?v={{ app_version }}"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+        navigator.serviceWorker.register('/static/sw.js?v={{ app_version }}', { scope: '/' })
           .then(function(registration) {
             console.log('ServiceWorker registered:', registration.scope);
+
+            // Check for updates every hour
+            setInterval(() => registration.update(), 3600000);
+
+            // Listen for new service worker waiting
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (!newWorker) return;
+
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version available - show notification
+                  showUpdateNotification();
+                }
+              });
+            });
           })
           .catch(function(error) {
             console.log('ServiceWorker registration failed:', error);
           });
+
+        // Check if a service worker is already controlling the page
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_VERSION' });
+        }
+
+        // Listen for messages from service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'VERSION_INFO') {
+            const swVersion = event.data.version;
+            const currentVersion = window.APP_VERSION;
+            if (swVersion !== currentVersion) {
+              showUpdateNotification();
+            }
+          }
+        });
+      }
+
+      function showUpdateNotification() {
+        const banner = document.getElementById('update-notification-banner');
+        if (banner) {
+          banner.style.display = 'flex';
+        }
+      }
+
+      function hideUpdateNotification() {
+        const banner = document.getElementById('update-notification-banner');
+        if (banner) {
+          banner.style.display = 'none';
+        }
+      }
+
+      function reloadApp() {
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+        }
+        window.location.reload();
       }
     </script>
   </body>

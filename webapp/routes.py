@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.37"
+APP_VERSION = "1.6.38"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 
 bp = Blueprint("main", __name__)
@@ -76,6 +76,25 @@ def room(room: str) -> Any:
             return redirect(f"/r/{default_room_value}")
         return redirect(f"/r/{default_room()}")
     return render_template("index.html", room=room, app_version=APP_VERSION)
+
+
+@bp.route("/static/sw.js")
+def service_worker() -> Any:
+    """Serve the service worker with the current app version."""
+    from flask import make_response
+
+    response = make_response(render_template("sw.js.j2", app_version=APP_VERSION))
+    response.headers["Content-Type"] = "application/javascript"
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
+@bp.route("/api/version")
+def api_version() -> Any:
+    """Get the current app version."""
+    return jsonify({"version": APP_VERSION})
 
 
 @bp.route("/api/search")
