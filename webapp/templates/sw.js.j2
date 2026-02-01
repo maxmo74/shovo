@@ -195,30 +195,8 @@ async function fetchAndCache(request, cacheName) {
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
 
-  if (event.data.type === 'CLEAR_API_CACHE') {
-    console.log('[SW] Clearing API cache');
-    caches.delete(API_CACHE);
-  }
-
-  if (event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] SKIP_WAITING received, activating new service worker');
-    self.skipWaiting().then(() => {
-      console.log('[SW] skipWaiting complete');
-      // Claim clients immediately after activation
-      return self.clients.claim();
-    }).then(() => {
-      console.log('[SW] Clients claimed');
-    });
-  }
-
-  if (event.data.type === 'CHECK_VERSION') {
-    console.log('[SW] Version check requested');
-    // Send current version back to client
-    if (event.ports && event.ports[0]) {
-      event.ports[0].postMessage({
-        type: 'VERSION_INFO',
-        version: '{{ app_version }}'
-      });
-    }
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] SKIP_WAITING received - activating immediately');
+    self.skipWaiting();
   }
 });
