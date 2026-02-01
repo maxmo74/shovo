@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.40"
+APP_VERSION = "1.6.41"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 
 bp = Blueprint("main", __name__)
@@ -88,6 +88,7 @@ def service_worker() -> Any:
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
+    response.headers["Service-Worker-Allowed"] = "/"
     return response
 
 
