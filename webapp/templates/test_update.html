@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SW Update Flow Test - Shovo v{{ app_version }}</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #0a0e1a;
+            color: #e2e8f0;
+        }
+        h1 { color: #f4c052; }
+        .info-box {
+            background: rgba(255,255,255,0.05);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 3px solid #f4c052;
+        }
+        .log {
+            background: rgba(255,255,255,0.03);
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #666;
+            font-size: 12px;
+        }
+        .log.error { border-left-color: #f87171; background: rgba(248,113,113,0.1); }
+        .log.success { border-left-color: #4ade80; background: rgba(74,222,128,0.1); }
+        .log.warning { border-left-color: #fbbf24; background: rgba(251,191,36,0.1); }
+        button {
+            background: #f4c052;
+            color: #050a18;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        button:hover { background: #f0a532; }
+        .status { font-weight: bold; margin: 15px 0; }
+        #logs { max-height: 400px; overflow-y: auto; margin-top: 20px; }
+        .state-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 5px;
+        }
+        .state-installed { background: #4ade80; color: #000; }
+        .state-activated { background: #22c55e; color: #000; }
+        .state-waiting { background: #fbbf24; color: #000; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Service Worker Update Flow Test</h1>
+
+    <div class="info-box">
+        <div class="status">
+            <strong>Server Version:</strong> <span id="serverVersion">{{ app_version }}</span><br>
+            <strong>Page Version:</strong> <span id="pageVersion">{{ app_version }}</span><br>
+            <strong>Service Worker State:</strong> <span id="swState">Checking...</span>
+        </div>
+    </div>
+
+    <div class="info-box">
+        <h3>Registration Info:</h3>
+        <div id="registrationInfo">Waiting for registration...</div>
+    </div>
+
+    <div>
+        <h3>Actions:</h3>
+        <button onclick="checkForUpdate()">🔄 Manual Update Check</button>
+        <button onclick="showRegistrationInfo()">📊 Show SW Details</button>
+        <button onclick="clearLogs()">🗑️ Clear Logs</button>
+        <button onclick="unregisterSW()">❌ Unregister SW</button>
+        <button onclick="clearStorage()">💾 Clear Storage</button>
+        <button onclick="simulateUpdate()">🎭 Simulate Update (Dev)</button>
+    </div>
+
+    <h2>📜 Event Log:</h2>
+    <div id="logs"></div>
+
+    <script>
+        window.APP_VERSION = "{{ app_version }}";
+        let registration = null;
+
+        function log(message, type = 'log') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            const time = new Date().toLocaleTimeString();
+            div.innerHTML = `<strong>[${time}]</strong> ${message}`;
+            document.getElementById('logs').prepend(div);
+            console.log(`[${time}] ${message}`);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared');
+        }
+
+        function clearStorage() {
+            sessionStorage.clear();
+            localStorage.clear();
+            log('Storage cleared', 'success');
+        }
+
+        async function checkForUpdate() {
+            if (!registration) {
+                log('No registration found', 'error');
+                return;
+            }
+            log('📡 Manually checking for update...', 'warning');
+            try {
+                await registration.update();
+                log('✓ Update check complete', 'success');
+                showRegistrationInfo();
+            } catch (error) {
+                log(`✗ Update check failed: ${error}`, 'error');
+            }
+        }
+
+        function showRegistrationInfo() {
+            if (!registration) {
+                log('No registration', 'error');
+                return;
+            }
+
+            const info = [];
+            info.push(`<strong>Scope:</strong> ${registration.scope}`);
+            info.push(`<strong>Update via cache:</strong> ${registration.updateViaCache}`);
+
+            if (registration.installing) {
+                info.push(`<strong>Installing:</strong> <span class="state-badge state-waiting">YES</span>`);
+                info.push(`  └─ State: ${registration.installing.state}`);
+                info.push(`  └─ Script: ${registration.installing.scriptURL}`);
+            } else {
+                info.push(`<strong>Installing:</strong> NO`);
+            }
+
+            if (registration.waiting) {
+                info.push(`<strong>Waiting:</strong> <span class="state-badge state-installed">YES</span>`);
+                info.push(`  └─ State: ${registration.waiting.state}`);
+                info.push(`  └─ Script: ${registration.waiting.scriptURL}`);
+            } else {
+                info.push(`<strong>Waiting:</strong> NO`);
+            }
+
+            if (registration.active) {
+                info.push(`<strong>Active:</strong> <span class="state-badge state-activated">YES</span>`);
+                info.push(`  └─ State: ${registration.active.state}`);
+                info.push(`  └─ Script: ${registration.active.scriptURL}`);
+            } else {
+                info.push(`<strong>Active:</strong> NO`);
+            }
+
+            document.getElementById('registrationInfo').innerHTML = info.join('<br>');
+            log('📊 Registration info updated');
+        }
+
+        async function unregisterSW() {
+            if (!registration) {
+                log('No registration to unregister', 'error');
+                return;
+            }
+            const result = await registration.unregister();
+            log(`${result ? '✓' : '✗'} Unregister result: ${result}`, result ? 'success' : 'error');
+            if (result) {
+                log('Page will reload to clear SW', 'warning');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        function simulateUpdate() {
+            log('🎭 To simulate an update:', 'warning');
+            log('1. Edit webapp/routes.py and change APP_VERSION to a new version', 'warning');
+            log('2. Restart the Flask server', 'warning');
+            log('3. Click "Manual Update Check" button above', 'warning');
+            log('4. Watch the logs for update detection', 'warning');
+        }
+
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            log('✓ Service Worker API available', 'success');
+
+            // Check storage flags
+            const justUpdated = sessionStorage.getItem('shovo_just_updated');
+            const updateShown = sessionStorage.getItem('shovo_update_shown');
+            if (justUpdated) log(`⚠️ Session flag: just_updated = ${justUpdated}`, 'warning');
+            if (updateShown) log(`⚠️ Session flag: update_shown = ${updateShown}`, 'warning');
+
+            navigator.serviceWorker.register('/static/sw.js?v={{ app_version }}', { scope: '/' })
+                .then(function(reg) {
+                    registration = reg;
+                    log('✓ Service Worker registered successfully', 'success');
+                    showRegistrationInfo();
+
+                    // Immediate update check
+                    log('🔍 Running initial update check...');
+                    reg.update();
+
+                    // Listen for updatefound
+                    reg.addEventListener('updatefound', () => {
+                        log('🔔 UPDATE FOUND! New service worker installing...', 'warning');
+                        const newWorker = reg.installing;
+
+                        if (!newWorker) {
+                            log('⚠️ No installing worker found', 'error');
+                            return;
+                        }
+
+                        log(`New worker initial state: ${newWorker.state}`);
+
+                        newWorker.addEventListener('statechange', () => {
+                            log(`🔄 New worker state changed: ${newWorker.state}`, 'warning');
+
+                            if (newWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    log('🎉 NEW VERSION READY! Update notification should appear.', 'success');
+                                } else {
+                                    log('✓ Service Worker installed for first time', 'success');
+                                }
+                                showRegistrationInfo();
+                            }
+
+                            if (newWorker.state === 'activated') {
+                                log('✅ New service worker ACTIVATED', 'success');
+                                showRegistrationInfo();
+                            }
+                        });
+                    });
+
+                    // Check if there's already an update waiting
+                    if (reg.waiting) {
+                        log('⚠️ Service worker already waiting!', 'warning');
+                    }
+                })
+                .catch(function(error) {
+                    log(`✗ Registration failed: ${error}`, 'error');
+                });
+
+            // Listen for controller change
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('🔄 CONTROLLER CHANGED - New SW now controlling the page', 'warning');
+                log('Page will reload automatically...', 'warning');
+            });
+
+            // Check current controller
+            if (navigator.serviceWorker.controller) {
+                log('✓ Service Worker currently controlling this page', 'success');
+                log(`Controller: ${navigator.serviceWorker.controller.scriptURL}`);
+            } else {
+                log('⚠️ No service worker controlling this page yet', 'warning');
+            }
+        } else {
+            log('✗ Service Worker not supported in this browser', 'error');
+        }
+
+        // Fetch server version
+        fetch('/api/version')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('serverVersion').textContent = data.version;
+                log(`Server reports version: ${data.version}`);
+
+                if (data.version !== window.APP_VERSION) {
+                    log(`⚠️ VERSION MISMATCH! Server: ${data.version}, Page: ${window.APP_VERSION}`, 'error');
+                }
+            })
+            .catch(e => {
+                log(`✗ Failed to fetch server version: ${e}`, 'error');
+            });
+    </script>
+</body>
+</html>

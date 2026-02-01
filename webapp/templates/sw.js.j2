@@ -21,25 +21,39 @@ const STATIC_ASSETS = [
 const API_CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
 
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker v{{ app_version }}');
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
+      console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_ASSETS.filter(url => !url.startsWith('/r/')));
+    }).then(() => {
+      console.log('[SW] Static assets cached');
     })
   );
+  // Skip waiting to activate immediately
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker v{{ app_version }}');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== API_CACHE)
-          .map((name) => caches.delete(name))
+      console.log('[SW] Current caches:', cacheNames);
+      const cachesToDelete = cacheNames.filter((name) =>
+        name !== STATIC_CACHE && name !== API_CACHE && name.startsWith('shovo-')
       );
+      console.log('[SW] Deleting old caches:', cachesToDelete);
+      return Promise.all(
+        cachesToDelete.map((name) => caches.delete(name))
+      );
+    }).then(() => {
+      console.log('[SW] Old caches deleted');
+      console.log('[SW] Claiming clients');
+      return self.clients.claim();
+    }).then(() => {
+      console.log('[SW] Clients claimed, activation complete');
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -179,17 +193,32 @@ async function fetchAndCache(request, cacheName) {
 
 // Handle messages from the main thread
 self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+
   if (event.data.type === 'CLEAR_API_CACHE') {
+    console.log('[SW] Clearing API cache');
     caches.delete(API_CACHE);
   }
+
   if (event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-  if (event.data.type === 'CHECK_VERSION') {
-    // Send current version back to client
-    event.ports[0].postMessage({
-      type: 'VERSION_INFO',
-      version: '{{ app_version }}'
+    console.log('[SW] SKIP_WAITING received, activating new service worker');
+    self.skipWaiting().then(() => {
+      console.log('[SW] skipWaiting complete');
+      // Claim clients immediately after activation
+      return self.clients.claim();
+    }).then(() => {
+      console.log('[SW] Clients claimed');
     });
+  }
+
+  if (event.data.type === 'CHECK_VERSION') {
+    console.log('[SW] Version check requested');
+    // Send current version back to client
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({
+        type: 'VERSION_INFO',
+        version: '{{ app_version }}'
+      });
+    }
   }
 });

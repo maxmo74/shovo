@@ -329,68 +329,125 @@
     <script type="module" src="/static/js/main.js?v={{ app_version }}"></script>
     <script nomodule src="/static/app.js?v={{ app_version }}"></script>
     <script>
-      if ('serviceWorker' in navigator) {
+      // Service Worker Update Management
+      (function() {
+        if (!('serviceWorker' in navigator)) {
+          console.log('Service Worker not supported');
+          return;
+        }
+
+        // Track if we just updated to prevent showing banner again after reload
+        const JUST_UPDATED_KEY = 'shovo_just_updated';
+        const UPDATE_SHOWN_KEY = 'shovo_update_shown';
+
+        // Check if we just reloaded after update
+        const justUpdated = sessionStorage.getItem(JUST_UPDATED_KEY);
+        if (justUpdated) {
+          console.log('Just updated, clearing flag');
+          sessionStorage.removeItem(JUST_UPDATED_KEY);
+          sessionStorage.removeItem(UPDATE_SHOWN_KEY);
+          // Don't show update notification
+          return;
+        }
+
+        let updateAvailable = false;
+
         navigator.serviceWorker.register('/static/sw.js?v={{ app_version }}', { scope: '/' })
           .then(function(registration) {
             console.log('ServiceWorker registered:', registration.scope);
 
             // Check for updates every hour
-            setInterval(() => registration.update(), 3600000);
+            setInterval(() => {
+              console.log('Periodic update check');
+              registration.update();
+            }, 3600000);
 
-            // Listen for new service worker waiting
+            // Listen for updates
             registration.addEventListener('updatefound', () => {
+              console.log('Update found! New service worker installing...');
               const newWorker = registration.installing;
               if (!newWorker) return;
 
               newWorker.addEventListener('statechange', () => {
+                console.log('New service worker state:', newWorker.state);
+
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New version available - show notification
-                  showUpdateNotification();
+                  // New version available - show notification (only once)
+                  const alreadyShown = sessionStorage.getItem(UPDATE_SHOWN_KEY);
+                  if (!alreadyShown) {
+                    console.log('New version available, showing notification');
+                    updateAvailable = true;
+                    sessionStorage.setItem(UPDATE_SHOWN_KEY, 'true');
+                    showUpdateNotification();
+                  }
                 }
               });
             });
+
+            // Check if there's already an update waiting
+            if (registration.waiting && navigator.serviceWorker.controller) {
+              const alreadyShown = sessionStorage.getItem(UPDATE_SHOWN_KEY);
+              if (!alreadyShown) {
+                console.log('Update already waiting, showing notification');
+                updateAvailable = true;
+                sessionStorage.setItem(UPDATE_SHOWN_KEY, 'true');
+                showUpdateNotification();
+              }
+            }
           })
           .catch(function(error) {
             console.log('ServiceWorker registration failed:', error);
           });
 
-        // Check if a service worker is already controlling the page
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_VERSION' });
-        }
-
-        // Listen for messages from service worker
-        navigator.serviceWorker.addEventListener('message', (event) => {
-          if (event.data.type === 'VERSION_INFO') {
-            const swVersion = event.data.version;
-            const currentVersion = window.APP_VERSION;
-            if (swVersion !== currentVersion) {
-              showUpdateNotification();
-            }
-          }
+        // Listen for controller change (happens after skipWaiting)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('Controller changed, reloading page...');
+          // Set flag that we're reloading after update
+          sessionStorage.setItem(JUST_UPDATED_KEY, 'true');
+          window.location.reload();
         });
-      }
 
-      function showUpdateNotification() {
-        const banner = document.getElementById('update-notification-banner');
-        if (banner) {
-          banner.style.display = 'flex';
-        }
-      }
+        // Update notification functions
+        window.showUpdateNotification = function() {
+          const banner = document.getElementById('update-notification-banner');
+          if (banner && !sessionStorage.getItem(JUST_UPDATED_KEY)) {
+            banner.style.display = 'flex';
+            console.log('Update notification shown');
+          }
+        };
 
-      function hideUpdateNotification() {
-        const banner = document.getElementById('update-notification-banner');
-        if (banner) {
-          banner.style.display = 'none';
-        }
-      }
+        window.hideUpdateNotification = function() {
+          const banner = document.getElementById('update-notification-banner');
+          if (banner) {
+            banner.style.display = 'none';
+            sessionStorage.removeItem(UPDATE_SHOWN_KEY);
+            console.log('Update notification hidden');
+          }
+        };
 
-      function reloadApp() {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-        }
-        window.location.reload();
-      }
+        window.reloadApp = function() {
+          console.log('User clicked update, activating new service worker...');
+          // Tell the service worker to skip waiting
+          if (navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+          }
+
+          // Get the waiting service worker and tell it to skip waiting
+          navigator.serviceWorker.getRegistration().then(registration => {
+            if (registration && registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+
+          // The controllerchange event will trigger the reload
+          // If it doesn't happen in 1 second, reload manually
+          setTimeout(() => {
+            console.log('Manual reload fallback');
+            sessionStorage.setItem(JUST_UPDATED_KEY, 'true');
+            window.location.reload();
+          }, 1000);
+        };
+      })();
     </script>
   </body>
 </html>
