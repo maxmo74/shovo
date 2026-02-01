@@ -6,11 +6,18 @@ This document outlines the operating guidelines and permissions for AI agents wo
 
 1. **Repository Scope**: Agents may operate freely within the `/home/massimo/repos/shovo` directory and its subdirectories.
 
-2. **Change Policy**: All changes must be reviewed and approved by the user before execution, except for minor formatting or documentation updates.
+2. **Development Model**: **This application is entirely developed and tested by AI agents**. The user will only deploy to production and test in real-world scenarios. Agents are responsible for:
+   - Writing all code
+   - Testing all changes thoroughly before committing
+   - Ensuring quality and correctness
+   - No user intervention should be needed for development/testing
 
-3. **Transparency**: Agents must always show diffs or summaries of proposed changes before making them.
+3. **Change Policy**: Agents should implement changes autonomously after understanding requirements. For significant architectural changes, discuss the approach first, but otherwise proceed with implementation and testing.
 
-4. **Deployment Workflow**: After completing any task, agents must ALWAYS:
+4. **Transparency**: Agents must always show diffs or summaries of proposed changes before making them.
+
+5. **Deployment Workflow**: After completing any task, agents must ALWAYS:
+   - Test changes thoroughly using available tools (mathematical verification, code analysis, etc.)
    - Update the patch version (no confirmation needed)
    - Commit all changes with a descriptive message (no confirmation needed)
    - Push changes to the remote repository (no confirmation needed)
@@ -67,14 +74,37 @@ This document outlines the operating guidelines and permissions for AI agents wo
 3. **Push Updates**: Push changes to remote repository after successful testing
 4. **Documentation**: Update version references in documentation and changelogs when applicable
 
-## Testing with Headless Browser
+## Testing Guidelines
 
-Agents can now test their changes using the internal headless browser before deployment. This allows for visual verification of UI changes, especially for mobile layouts.
+**CRITICAL**: Agents must thoroughly test all changes before committing. Testing methods include:
 
-To test mobile UI:
-1. Use Playwright or similar tools to capture screenshots at mobile viewport sizes
-2. Review screenshots to verify layout, spacing, and component sizing
-3. Test both portrait and landscape orientations if relevant
+1. **Mathematical/Logical Verification**: Analyze code logic, CSS positioning, etc. to verify correctness
+2. **Code Analysis**: Review code paths, edge cases, and potential issues
+3. **Available Tools**: Use any available testing tools (browsers, screenshot tools, etc.) if present
+4. **Test Documentation**: Create verification reports in `/tmp` to document testing process
+
+### File Management During Testing
+
+**IMPORTANT**: Never create test files or temporary artifacts in the git repository that will be committed.
+
+**Rules**:
+1. **Use `/tmp` for all test files**: Test HTML, verification reports, screenshots, etc. should go in `/tmp`
+2. **Check `.gitignore`**: If a file must be in the repo temporarily, ensure it's in `.gitignore`
+3. **Clean up**: Remove temporary test files after testing is complete
+4. **Examples of files to keep out of repo**:
+   - Test HTML pages
+   - Verification reports
+   - Screenshots
+   - Temporary scripts
+   - Debug output files
+
+### Testing Mobile UI
+
+For mobile UI changes:
+1. Create test HTML files in `/tmp` to verify layouts
+2. Use mathematical/geometric analysis to verify CSS positioning
+3. Analyze responsive breakpoints and their interactions
+4. Verify the CSS cascade at different viewport sizes
 
 ### Known Mobile UI Issues
 
