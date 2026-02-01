@@ -1,1 +1,47 @@
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Test and coverage
+.pytest_cache/
+*.pytest_cache*
+coverage.xml
+.htmlcov/
+.tox/
+
+# IDE and editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database
+*.sqlite3
+*.db
+
+# Logs and runtime files
+*.log
+*.pid
+*.lock
+
+# Build and distribution
+build/
+dist/
+*.egg-info/
+
+# Environment variables
+.env
+.env.local
+
+# Node modules
+node_modules/
+
+# Mac/Windows specific
+.DS_Store
+Thumbs.db
