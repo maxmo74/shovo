@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.50"
+APP_VERSION = "1.6.51"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 
 bp = Blueprint("main", __name__)
@@ -96,12 +96,6 @@ def service_worker() -> Any:
 def api_version() -> Any:
     """Get the current app version."""
     return jsonify({"version": APP_VERSION})
-
-
-@bp.route("/test-update")
-def test_update() -> Any:
-    """Test page for service worker update flow."""
-    return render_template("test_update.html", app_version=APP_VERSION)
 
 
 @bp.route("/api/search")

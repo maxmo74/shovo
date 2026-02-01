@@ -17,7 +17,6 @@ const menu = document.querySelector('.menu');
 const roomTagButton = document.getElementById('room-tag-button');
 const roomVisibility = document.getElementById('room-visibility');
 const roomCount = document.getElementById('room-count');
-const shareRoomButton = document.getElementById('share-room');
 const appVersionTag = document.getElementById('app-version-tag');
 const refreshConfirmModal = document.getElementById('refresh-confirm-modal');
 const refreshConfirmCancel = document.getElementById('refresh-confirm-cancel');
