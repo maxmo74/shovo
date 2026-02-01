@@ -2147,7 +2147,6 @@ body.is-mobile .card-content {
   gap: 0.7rem;
   align-items: stretch;
   transition: transform 0.3s ease;
-  position: relative;
   z-index: 1;
   background: rgba(8, 15, 28, 0.9);
 }
