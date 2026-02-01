@@ -42,8 +42,8 @@ This document outlines the operating guidelines and permissions for AI agents wo
 3. **Review Phase**: Show diffs and explain rationale for changes
 4. **Execution Phase**: Implement changes only after explicit user approval
 5. **Deployment Phase**: After task completion, AUTOMATICALLY (no confirmation needed):
-   - Bump patch version in all relevant files
-   - Commit changes with descriptive message
+   - **CRITICAL**: Update APP_VERSION in webapp/routes.py (increment patch version X.Y.Z → X.Y.Z+1)
+   - Commit changes with descriptive message including version number
    - Push to remote repository for deployment
 
 ### Communication Protocol
@@ -55,10 +55,17 @@ This document outlines the operating guidelines and permissions for AI agents wo
 
 ### Version Management Process
 
-1. **Patch Version Bump**: Increment patch version (X.Y.Z → X.Y.Z+1) for bug fixes and minor improvements
-2. **Commit Changes**: Create descriptive commit messages following conventional commits format
+**CRITICAL**: Always update the version after ANY code changes, bug fixes, or improvements.
+
+1. **Patch Version Bump**: Edit webapp/routes.py and increment APP_VERSION (X.Y.Z → X.Y.Z+1) for ALL changes including:
+   - Bug fixes
+   - UI/UX improvements
+   - Feature additions
+   - Mobile optimizations
+   - Any code modifications
+2. **Commit Changes**: Create descriptive commit messages following conventional commits format, including the new version number
 3. **Push Updates**: Push changes to remote repository after successful testing
-4. **Documentation**: Update version references in documentation and changelogs
+4. **Documentation**: Update version references in documentation and changelogs when applicable
 
 ## Testing with Headless Browser
 

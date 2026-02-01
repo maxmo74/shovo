@@ -1482,16 +1482,17 @@ button.ghost {
 
   /* Position mobile drag handle at top-right of card-body */
   .card-body {
-    position: relative;
+    position: relative !important;
+    padding-right: 36px !important; /* Make space for drag handle */
   }
 
   .card-drag-handle-mobile {
     display: flex !important;
     align-items: center;
     justify-content: center;
-    position: absolute;
-    top: 0;
-    right: 0;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
     background: rgba(148, 163, 184, 0.12);
     color: rgba(148, 163, 184, 0.7);
     border: 1px solid rgba(148, 163, 184, 0.25);
@@ -1500,7 +1501,8 @@ button.ghost {
     height: 32px;
     font-size: 0.85rem;
     padding: 0;
-    z-index: 1;
+    z-index: 10 !important;
+    margin: 0 !important;
   }
 
   .card-drag-handle-mobile:active {

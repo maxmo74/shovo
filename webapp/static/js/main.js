@@ -417,10 +417,15 @@ const renderList = (items) => {
           cardHandlers.onRemove(item);
         }
       },
-      (titleId, newWatched) => {
+      async (titleId, newWatched) => {
         const item = currentListItems.find((entry) => entry.title_id === titleId);
-        if (item && cardHandlers.onToggleWatched) {
-          cardHandlers.onToggleWatched({ ...item, watched: newWatched });
+        if (item) {
+          try {
+            await updateWatched(room, titleId, newWatched);
+            await loadList();
+          } catch (error) {
+            alert('Failed to update item.');
+          }
         }
       }
     );
