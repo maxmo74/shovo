@@ -78,10 +78,21 @@ This document outlines the operating guidelines and permissions for AI agents wo
 
 **CRITICAL**: Agents must thoroughly test all changes before committing. Testing methods include:
 
-1. **Mathematical/Logical Verification**: Analyze code logic, CSS positioning, etc. to verify correctness
-2. **Code Analysis**: Review code paths, edge cases, and potential issues
-3. **Available Tools**: Use any available testing tools (browsers, screenshot tools, etc.) if present
-4. **Test Documentation**: Create verification reports in `/tmp` to document testing process
+1. **Visual Browser Testing (REQUIRED for UI changes)**: Always use headless browser testing for UI/CSS changes
+   - Install Playwright in a temp venv: `python3 -m venv /tmp/test_env && source /tmp/test_env/bin/activate && pip install playwright && playwright install chromium`
+   - Create test HTML files in `/tmp` with the component being tested
+   - Take screenshots at relevant breakpoints (375px, 480px, 360px for mobile)
+   - Verify positioning, alignment, and visual appearance
+   - Iterate until visually correct, THEN commit
+
+2. **Mathematical/Logical Verification**: Analyze code logic, CSS positioning, etc. to verify correctness
+   - This is supplementary, NOT a replacement for visual testing
+
+3. **Code Analysis**: Review code paths, edge cases, and potential issues
+
+4. **Test Documentation**: Create verification reports and screenshots in `/tmp` to document testing process
+
+**IMPORTANT**: Never commit CSS/UI changes without visual browser verification. Mathematical analysis alone is insufficient - what looks correct in theory may not render correctly in practice.
 
 ### File Management During Testing
 
