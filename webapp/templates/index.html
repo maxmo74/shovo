@@ -13,13 +13,7 @@
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
   </head>
   <body>
-    <div id="update-notification-banner" class="update-notification" style="display: none;">
-      <div class="update-notification-content">
-        <span class="update-notification-text">New version available!</span>
-        <button class="update-notification-button" type="button" onclick="reloadApp()">Update now</button>
-        <button class="update-notification-dismiss" type="button" onclick="hideUpdateNotification()" aria-label="Dismiss">×</button>
-      </div>
-    </div>
+    <!-- Update notification banner removed - using auto-refresh instead -->
     <main>
       <header class="app-header">
         <div class="brand-row">
@@ -329,7 +323,16 @@
     <script type="module" src="/static/js/main.js?v={{ app_version }}"></script>
     <script nomodule src="/static/app.js?v={{ app_version }}"></script>
     <script>
-      // Service Worker Update Management
+      // Automatic Update System - No user interaction required
+      // This ensures clients always have the latest code without manual refresh
+      
+      // Function to automatically refresh the page when an update is detected
+      function autoRefreshForUpdate() {
+        console.log('[Update] Automatic refresh triggered - reloading page');
+        window.location.reload();
+      }
+
+      // Service Worker Update Management with automatic refresh
       if ('serviceWorker' in navigator) {
         let refreshing = false;
 
@@ -351,7 +354,7 @@
               registration.update();
             }, 3600000);
 
-            // Listen for updates
+            // Listen for updates and auto-refresh instead of showing notification
             registration.addEventListener('updatefound', () => {
               console.log('[Update] New service worker installing...');
               const newWorker = registration.installing;
@@ -361,59 +364,31 @@
                 console.log('[Update] New worker state:', newWorker.state);
 
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[Update] New version available!');
-                  showUpdateNotification();
+                  console.log('[Update] New version available - auto-refreshing...');
+                  autoRefreshForUpdate();
                 }
               });
             });
 
-            // Check if there's already an update waiting
+            // Check if there's already an update waiting and auto-refresh
             if (registration.waiting && navigator.serviceWorker.controller) {
-              console.log('[Update] Update already waiting, showing notification');
-              showUpdateNotification();
+              console.log('[Update] Update already waiting - auto-refreshing...');
+              autoRefreshForUpdate();
             }
           })
           .catch(function(error) {
             console.log('[SW] Registration failed:', error);
           });
       }
+      
+      // Fallback: Auto-refresh if page has been open for more than 4 hours
+      // This ensures even clients without service workers get updates
+      setTimeout(() => {
+        console.log('[Update] Page has been open for 4+ hours - auto-refreshing for updates');
+        window.location.reload();
+      }, 14400000); // 4 hours in milliseconds
 
-      function showUpdateNotification() {
-        const banner = document.getElementById('update-notification-banner');
-        if (banner) {
-          banner.style.display = 'flex';
-          console.log('[Update] Notification shown');
-        }
-      }
-
-      function hideUpdateNotification() {
-        const banner = document.getElementById('update-notification-banner');
-        if (banner) {
-          banner.style.display = 'none';
-          console.log('[Update] Notification hidden');
-        }
-      }
-
-      function reloadApp() {
-        console.log('[Update] User clicked update button');
-
-        navigator.serviceWorker.getRegistration().then(registration => {
-          if (!registration || !registration.waiting) {
-            console.log('[Update] No waiting worker, reloading anyway');
-            window.location.reload();
-            return;
-          }
-
-          console.log('[Update] Telling waiting worker to skip waiting');
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-
-          // Fallback: if controllerchange doesn't fire in 1 second, reload manually
-          setTimeout(() => {
-            console.log('[Update] Fallback reload');
-            window.location.reload();
-          }, 1000);
-        });
-      }
+      // Update notification functions removed - using auto-refresh instead
     </script>
   </body>
 </html>
