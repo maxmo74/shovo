@@ -49,13 +49,16 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.51"
+APP_VERSION = "1.6.52"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
+TRENDING_TTL_SECONDS = 60 * 60
 
 bp = Blueprint("main", __name__)
 
 _refresh_lock = threading.Lock()
 _refresh_state: dict[str, dict[str, int | bool]] = {}
+_trending_lock = threading.Lock()
+_trending_cache: dict[str, Any] = {"data": [], "fetched_at": 0, "refreshing": False}
 
 
 @bp.route("/")
@@ -75,6 +78,7 @@ def room(room: str) -> Any:
         if default_room_value:
             return redirect(f"/r/{default_room_value}")
         return redirect(f"/r/{default_room()}")
+    _ensure_trending_preload(request_user_agent())
     return render_template("index.html", room=room, app_version=APP_VERSION)
 
 
@@ -171,7 +175,7 @@ def api_trending() -> Any:
     """Get trending titles."""
     user_agent = request_user_agent()
     try:
-        results = fetch_trending(user_agent)
+        results = _get_trending_cached(user_agent)
     except requests.RequestException as exc:
         return jsonify({"error": "imdb_fetch_failed", "detail": str(exc)}), 502
     return jsonify({"results": [serialize_result(result) for result in results]})
@@ -194,6 +198,14 @@ def api_list() -> Any:
         "SELECT COUNT(*) FROM lists WHERE room = ? AND watched = ?",
         (room, watched_flag),
     ).fetchone()[0]
+    watched_count = conn.execute(
+        "SELECT COUNT(*) FROM lists WHERE room = ? AND watched = 1",
+        (room,),
+    ).fetchone()[0]
+    unwatched_count = conn.execute(
+        "SELECT COUNT(*) FROM lists WHERE room = ? AND watched = 0",
+        (room,),
+    ).fetchone()[0]
     rows = conn.execute(
         """
         SELECT * FROM lists
@@ -211,8 +223,81 @@ def api_list() -> Any:
             "per_page": per_page,
             "total_pages": total_pages,
             "total_count": total_count,
+            "counts": {"watched": watched_count, "unwatched": unwatched_count},
         }
     )
+
+
+def _set_trending_cache(results: list[Any]) -> None:
+    now = int(time.time())
+    _trending_cache["data"] = results
+    _trending_cache["fetched_at"] = now
+
+
+def _refresh_trending_async(user_agent: str) -> None:
+    def _run() -> None:
+        try:
+            results = fetch_trending(user_agent)
+        except requests.RequestException:
+            with _trending_lock:
+                _trending_cache["refreshing"] = False
+            return
+        with _trending_lock:
+            _set_trending_cache(results)
+            _trending_cache["refreshing"] = False
+
+    thread = threading.Thread(target=_run, daemon=True)
+    thread.start()
+
+
+def _ensure_trending_preload(user_agent: str) -> None:
+    now = int(time.time())
+    with _trending_lock:
+        data = _trending_cache.get("data", [])
+        fetched_at = int(_trending_cache.get("fetched_at", 0))
+        refreshing = bool(_trending_cache.get("refreshing"))
+        is_fresh = data and fetched_at + TRENDING_TTL_SECONDS > now
+        if refreshing or is_fresh:
+            return
+        _trending_cache["refreshing"] = True
+    _refresh_trending_async(user_agent)
+
+
+def _get_trending_cached(user_agent: str) -> list[Any]:
+    now = int(time.time())
+    with _trending_lock:
+        data = _trending_cache.get("data", [])
+        fetched_at = int(_trending_cache.get("fetched_at", 0))
+        refreshing = bool(_trending_cache.get("refreshing"))
+        is_fresh = data and fetched_at + TRENDING_TTL_SECONDS > now
+        if is_fresh:
+            return data
+        if data and not refreshing:
+            _trending_cache["refreshing"] = True
+            _refresh_trending_async(user_agent)
+            return data
+        if refreshing and not data:
+            pass
+        else:
+            _trending_cache["refreshing"] = True
+    if refreshing and not data:
+        deadline = time.time() + 2
+        while time.time() < deadline:
+            with _trending_lock:
+                data = _trending_cache.get("data", [])
+                fetched_at = int(_trending_cache.get("fetched_at", 0))
+                if data and fetched_at + TRENDING_TTL_SECONDS > int(time.time()):
+                    return data
+            time.sleep(0.1)
+    try:
+        results = fetch_trending(user_agent)
+    finally:
+        with _trending_lock:
+            _trending_cache["refreshing"] = False
+    with _trending_lock:
+        _set_trending_cache(results)
+        _trending_cache["refreshing"] = False
+    return results
 
 
 @bp.route("/api/list", methods=["POST"])

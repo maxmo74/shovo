@@ -49,6 +49,7 @@ class TestListAPI:
         data = json.loads(response.data)
         assert data["items"] == []
         assert data["total_count"] == 0
+        assert data["counts"] == {"watched": 0, "unwatched": 0}
 
     def test_add_item_requires_json(self, client):
         """Test POST /api/list requires JSON."""
