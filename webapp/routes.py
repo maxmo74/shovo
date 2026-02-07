@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.54"
+APP_VERSION = "1.6.55"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 
@@ -189,8 +189,11 @@ def api_list() -> Any:
         return jsonify({"error": "missing_room"}), 400
     status = request.args.get("status", "unwatched")
     watched_flag = 1 if status == "watched" else 0
-    page = max(int(request.args.get("page", 1)), 1)
-    per_page = max(int(request.args.get("per_page", MAX_RESULTS)), 1)
+    try:
+        page = max(int(request.args.get("page", 1)), 1)
+        per_page = max(int(request.args.get("per_page", MAX_RESULTS)), 1)
+    except (ValueError, TypeError):
+        return jsonify({"error": "invalid_pagination_params"}), 400
     offset = (page - 1) * per_page
     conn = get_db()
     migrate_db(conn)
@@ -291,13 +294,12 @@ def _get_trending_cached(user_agent: str) -> list[Any]:
             time.sleep(0.1)
     try:
         results = fetch_trending(user_agent)
+        with _trending_lock:
+            _set_trending_cache(results)
+        return results
     finally:
         with _trending_lock:
             _trending_cache["refreshing"] = False
-    with _trending_lock:
-        _set_trending_cache(results)
-        _trending_cache["refreshing"] = False
-    return results
 
 
 @bp.route("/api/list", methods=["POST"])

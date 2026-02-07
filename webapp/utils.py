@@ -41,12 +41,11 @@ def serialize_result(result: SearchResult) -> dict[str, Any]:
 
 def room_from_request() -> str:
     """Extract and sanitize room from request arguments or JSON body."""
-    room = request.args.get("room") or request.json.get("room") if request.is_json else None
+    room = request.args.get("room") or (request.json.get("room") if request.is_json else None)
     if not room:
         return ""
-    room = room.strip().lower()
-    room = re.sub(r"[^a-z0-9-]", "", room)
-    return room
+    sanitized = sanitize_room(room)
+    return sanitized
 
 
 def sanitize_room(value: str | None) -> str:

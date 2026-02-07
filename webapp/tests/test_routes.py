@@ -347,3 +347,17 @@ class TestPagination:
         page2_response = client.get("/api/list?room=paginationroom&page=2&per_page=10")
         page2_data = json.loads(page2_response.data)
         assert len(page2_data["items"]) == 5
+
+    def test_pagination_invalid_page(self, client):
+        """Test pagination with invalid page parameter."""
+        response = client.get("/api/list?room=testroom&page=invalid")
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert data["error"] == "invalid_pagination_params"
+
+    def test_pagination_invalid_per_page(self, client):
+        """Test pagination with invalid per_page parameter."""
+        response = client.get("/api/list?room=testroom&per_page=xyz")
+        assert response.status_code == 400
+        data = json.loads(response.data)
+        assert data["error"] == "invalid_pagination_params"
