@@ -432,8 +432,9 @@ button.ghost {
 }
 
 .card-image {
-  width: 62px;
-  min-width: 62px;
+  width: 71px;
+  min-width: 71px;
+  min-height: 106px;
   height: 100%;
   align-self: stretch;
   object-fit: cover;
@@ -1013,14 +1014,15 @@ button.ghost {
   background: var(--surface-strong);
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: var(--radius);
-  padding: 0.75rem;
+  padding: 0;
   max-width: 420px;
   width: 100%;
   box-shadow: 0 20px 40px rgba(2, 8, 23, 0.6);
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0;
   position: relative;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -1028,13 +1030,16 @@ button.ghost {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.08) 0%, rgba(var(--accent-rgb), 0.03) 100%);
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.12);
 }
 
 .modal-header--compact {
-  justify-content: flex-end;
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  justify-content: space-between;
+  position: relative;
+  top: auto;
+  right: auto;
 }
 
 .modal-close {
@@ -1042,8 +1047,21 @@ button.ghost {
   background: transparent;
   width: auto;
   height: auto;
-  padding: 0;
-  font-size: 1.1rem;
+  padding: 0.25rem;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 150ms ease, color 150ms ease;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  opacity: 1;
+  color: var(--text-soft);
+  transform: none;
+  box-shadow: none;
 }
 
 .modal-header h2 {
@@ -1053,16 +1071,18 @@ button.ghost {
 
 .modal-subtitle {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-size: 0.9rem;
+  font-weight: 500;
+  flex: 1;
 }
 
 .modal-header--compact + .modal-subtitle,
 .modal-header--compact + .modal-subtitle-editable {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  right: 2.5rem;
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
   margin: 0;
   padding: 0;
   line-height: 1.1rem;
@@ -1070,16 +1090,24 @@ button.ghost {
 
 .modal-header--compact + .modal-subtitle + *,
 .modal-header--compact + .modal-subtitle-editable + * {
-  margin-top: 2rem;
+  margin-top: 0;
+}
+
+.modal-content {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
 }
 
 .modal-subtitle-editable {
   margin: 0;
   padding: 0;
-  color: var(--text-muted);
+  color: var(--text-soft);
   font-size: 0.9rem;
-  font-weight: 400;
-  max-width: calc(100% - 3rem);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -1095,6 +1123,7 @@ button.ghost {
   background: transparent;
   border: none;
   box-shadow: none;
+  transform: none;
 }
 
 .modal-subtitle-editable:focus {
@@ -1190,7 +1219,6 @@ button.ghost {
 .image-modal {
   max-width: min(90vw, 900px);
   max-height: 90vh;
-  padding-top: 2.5rem;
 }
 
 .image-modal img {
@@ -1204,7 +1232,6 @@ button.ghost {
 
 .about-modal {
   max-width: min(90vw, 640px);
-  padding-top: 2.5rem;
 }
 
 .about-details {
@@ -1223,7 +1250,6 @@ button.ghost {
 .share-modal,
 .privacy-modal {
   max-width: min(95vw, 520px);
-  padding-top: 2.5rem;
 }
 
 .option-group {
@@ -1391,9 +1417,10 @@ button.ghost {
   }
 
   .card-image {
-    width: 50px;
-    min-width: 50px;
-    max-height: 62px;
+    width: 58px;
+    min-width: 58px;
+    min-height: 87px;
+    max-height: 87px;
     object-fit: cover;
     align-self: stretch;
   }
@@ -1824,8 +1851,9 @@ button.ghost {
   }
 
   .card-image {
-    width: 56px;
-    min-width: 56px;
+    width: 64px;
+    min-width: 64px;
+    min-height: 96px;
   }
 
   .card-body {
@@ -2007,8 +2035,9 @@ button.ghost {
   }
 
   .card-image {
-    width: 52px;
-    min-width: 52px;
+    width: 60px;
+    min-width: 60px;
+    min-height: 90px;
   }
 
   .card-body {

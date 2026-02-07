@@ -526,11 +526,14 @@ const loadList = async () => {
     totalPages[activeTab] = data.total_pages || 1;
     currentListItems = data.items || [];
     renderList(applyFilter(currentListItems));
-    if (activeTab === 'unwatched' && countWatchlist) {
-      countWatchlist.textContent = String(data.total_count || 0);
-    }
-    if (activeTab === 'watched' && countWatched) {
-      countWatched.textContent = String(data.total_count || 0);
+    // Update both counts from the API response
+    if (data.counts) {
+      if (countWatchlist) {
+        countWatchlist.textContent = String(data.counts.unwatched || 0);
+      }
+      if (countWatched) {
+        countWatched.textContent = String(data.counts.watched || 0);
+      }
     }
     if (listPageStatus) {
       listPageStatus.textContent = `Page ${pageState[activeTab]} of ${totalPages[activeTab]}`;
