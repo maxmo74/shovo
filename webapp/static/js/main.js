@@ -92,6 +92,13 @@ const privacyModal = document.getElementById('privacy-modal');
 const privacyPasswordInput = document.getElementById('privacy-password');
 const privacyCancelButton = document.getElementById('privacy-cancel');
 const privacyUnlockButton = document.getElementById('privacy-unlock');
+const newListButton = document.getElementById('open-new-list');
+const newListModal = document.getElementById('new-list-modal');
+const newListModalClose = document.getElementById('new-list-modal-close');
+const newListNameInput = document.getElementById('new-list-name');
+const newListCreateButton = document.getElementById('new-list-create');
+const newListCancelButton = document.getElementById('new-list-cancel');
+const newListError = document.getElementById('new-list-error');
 const privacyError = document.getElementById('privacy-error');
 const listPagination = document.getElementById('list-pagination');
 const listPrev = document.getElementById('list-prev');
@@ -666,9 +673,43 @@ const renderVisitedRooms = () => {
     header.className = 'visited-room-header';
     const nameRow = document.createElement('div');
     nameRow.className = 'visited-room-name-row';
-    const name = document.createElement('div');
-    name.className = 'visited-room-name';
+    const name = document.createElement('button');
+    name.className = 'visited-room-name visited-room-name-editable';
+    name.type = 'button';
     name.textContent = roomId;
+    name.title = 'Click to rename list';
+    name.addEventListener('click', async () => {
+      const newName = prompt('Enter new list name:', roomId);
+      if (!newName || newName === roomId) return;
+      const sanitized = newName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+      if (!sanitized) {
+        alert('Invalid list name. Use only letters, numbers, and hyphens.');
+        return;
+      }
+      try {
+        const response = await fetch('/api/list/rename', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room: roomId, next_room: sanitized })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          alert(result.message || 'Failed to rename list');
+          return;
+        }
+        // Update local settings
+        if (settings.rooms[roomId]) {
+          settings.rooms[sanitized] = settings.rooms[roomId];
+          delete settings.rooms[roomId];
+          saveSettings(settings);
+        }
+        // Refresh the list
+        renderVisitedRooms();
+        updateVisitedRoomCounts();
+      } catch (error) {
+        alert('Failed to rename list');
+      }
+    });
     const countBadge = document.createElement('span');
     countBadge.className = 'visited-room-count';
     countBadge.textContent = data.count !== undefined ? String(data.count) : '…';
@@ -1080,6 +1121,53 @@ listNext?.addEventListener('click', () => {
   }
 });
 
+// New list modal handlers
+const openNewListModal = () => {
+  if (!newListModal) return;
+  if (newListNameInput) {
+    newListNameInput.value = '';
+  }
+  if (newListError) {
+    newListError.hidden = true;
+    newListError.textContent = '';
+  }
+  openModal(newListModal);
+};
+
+const closeNewListModal = () => closeModal(newListModal);
+
+const createNewList = () => {
+  if (!newListNameInput || !newListError) return;
+  const listName = newListNameInput.value.trim();
+  if (!listName) {
+    newListError.textContent = 'Please enter a list name.';
+    newListError.hidden = false;
+    return;
+  }
+  const sanitized = listName.toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!sanitized) {
+    newListError.textContent = 'Invalid name. Use only letters, numbers, and hyphens.';
+    newListError.hidden = false;
+    return;
+  }
+  // Navigate to the new list
+  window.location.href = `/r/${encodeURIComponent(sanitized)}`;
+};
+
+newListButton?.addEventListener('click', openNewListModal);
+newListModalClose?.addEventListener('click', closeNewListModal);
+newListCancelButton?.addEventListener('click', closeNewListModal);
+newListCreateButton?.addEventListener('click', createNewList);
+newListNameInput?.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    createNewList();
+  }
+});
+newListModal?.addEventListener('click', (event) => {
+  if (event.target === newListModal) closeNewListModal();
+});
+
 // Escape key handler
 setupEscapeHandler(
   {
@@ -1090,7 +1178,8 @@ setupEscapeHandler(
     share: shareModal,
     privacy: privacyModal,
     options: optionsModal,
-    cardActions: cardActionModal
+    cardActions: cardActionModal,
+    newList: newListModal
   },
   {
     search: closeSearchModal,
@@ -1100,7 +1189,8 @@ setupEscapeHandler(
     share: closeShareModal,
     privacy: closePrivacyModal,
     options: closeOptionsModal,
-    cardActions: closeCardActionModal
+    cardActions: closeCardActionModal,
+    newList: closeNewListModal
   }
 );
 

@@ -245,11 +245,17 @@
           <p class="option-hint">Pick the list that opens by default on this browser.</p>
         </div>
         <div class="option-group">
-          <button class="ghost option-share" id="open-share" type="button">
-            <img src="/static/share.svg" alt="" class="share-icon" />
-            <span>Share this list</span>
-          </button>
-          <p class="option-hint">Copy the link or share it with your friends.</p>
+          <div class="option-actions">
+            <button class="ghost option-share" id="open-share" type="button">
+              <img src="/static/share.svg" alt="" class="share-icon-small" />
+              <span>Share this list</span>
+            </button>
+            <button class="ghost option-new-list" id="open-new-list" type="button">
+              <span>➕</span>
+              <span>New list</span>
+            </button>
+          </div>
+          <p class="option-hint">Share the current list or create a new one.</p>
         </div>
         <div class="option-group">
           <p class="option-label">Visited lists</p>
@@ -332,6 +338,24 @@
             <button id="privacy-unlock" type="button">Unlock</button>
           </div>
           <p class="modal-body privacy-error" id="privacy-error" hidden>Incorrect password.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="new-list-modal" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="modal new-list-modal">
+        <div class="modal-header modal-header--compact">
+          <p class="modal-subtitle">Create new list</p>
+          <button class="modal-close" id="new-list-modal-close" type="button" aria-label="Close new list">×</button>
+        </div>
+        <div class="modal-content">
+          <p class="modal-body">Enter a name for your new list:</p>
+          <input id="new-list-name" type="text" placeholder="my-movie-list" autocomplete="off" />
+          <div class="modal-actions">
+            <button class="ghost" id="new-list-cancel" type="button">Cancel</button>
+            <button id="new-list-create" type="button">Create</button>
+          </div>
+          <p class="modal-body modal-error" id="new-list-error" hidden></p>
         </div>
       </div>
     </div>
