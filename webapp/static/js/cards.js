@@ -5,6 +5,59 @@
 import { getLargeImage } from './modal.js';
 
 /**
+ * Generate a placeholder poster SVG with the title text
+ * @param {string} title - Title text
+ * @returns {string} - Data URI for the SVG
+ */
+function generatePlaceholderPoster(title) {
+  // Truncate title if too long
+  const displayTitle = title.length > 30 ? title.substring(0, 27) + '...' : title;
+
+  // Split title into lines for better display
+  const words = displayTitle.split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if ((currentLine + ' ' + word).trim().length <= 12) {
+      currentLine = (currentLine + ' ' + word).trim();
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  // Limit to 4 lines
+  const displayLines = lines.slice(0, 4);
+
+  // Create SVG with title text
+  const textElements = displayLines.map((line, i) => {
+    const y = 90 + (i - displayLines.length / 2) * 20;
+    return `<text x="60" y="${y}" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="500">${escapeHtml(line)}</text>`;
+  }).join('');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="180" viewBox="0 0 120 180">
+    <rect width="120" height="180" fill="#0f172a"/>
+    <rect x="10" y="10" width="100" height="160" rx="4" fill="none" stroke="#1e293b" stroke-width="1"/>
+    ${textElements}
+  </svg>`;
+
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+/**
+ * Escape HTML entities
+ * @param {string} text - Text to escape
+ * @returns {string} - Escaped text
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
  * Normalize a type label
  * @param {string} typeLabel - Type label
  * @returns {string} - Normalized type label
@@ -174,8 +227,8 @@ export function buildMobileSearchResult(item, template, onAdd) {
   button.dataset.titleId = item.title_id;
   button.dataset.typeLabel = item.type_label || '';
   
-  // Set image
-  image.src = item.image || 'https://via.placeholder.com/300x450?text=No+Image';
+  // Set image - use placeholder if no image available
+  image.src = item.image || generatePlaceholderPoster(item.title);
   image.alt = `${item.title} poster`;
   image.loading = 'lazy';
 
@@ -235,8 +288,8 @@ export function buildCard(item, mode, template, handlers) {
   article.dataset.watched = item.watched ? '1' : '0';
   article.dataset.title = item.title || '';
 
-  // Add lazy loading to images
-  image.src = item.image || 'https://via.placeholder.com/300x450?text=No+Image';
+  // Add lazy loading to images - use placeholder if no image available
+  image.src = item.image || generatePlaceholderPoster(item.title);
   image.alt = `${item.title} poster`;
   image.loading = 'lazy';
 

@@ -114,10 +114,11 @@ export function cleanupCache() {
  * @param {string} room - Room ID
  * @param {string} status - Status (unwatched/watched)
  * @param {number} page - Page number
+ * @param {number} perPage - Items per page
  * @returns {string} - Cache key
  */
-export function getListCacheKey(room, status, page) {
-  return `list_${room}_${status}_${page}`;
+export function getListCacheKey(room, status, page, perPage = 10) {
+  return `list_${room}_${status}_${page}_${perPage}`;
 }
 
 /**

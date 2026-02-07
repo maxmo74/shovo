@@ -69,6 +69,35 @@ const cardActionRemove = document.getElementById('card-action-remove');
 const MAX_RESULTS = 10;
 const PAGE_SIZE = 10;
 const SETTINGS_COOKIE = 'shovo_settings';
+
+// Generate placeholder poster SVG with title text
+const generatePlaceholderPoster = (title) => {
+  const displayTitle = title.length > 30 ? title.substring(0, 27) + '...' : title;
+  const words = displayTitle.split(' ');
+  const lines = [];
+  let currentLine = '';
+  for (const word of words) {
+    if ((currentLine + ' ' + word).trim().length <= 12) {
+      currentLine = (currentLine + ' ' + word).trim();
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  const displayLines = lines.slice(0, 4);
+  const escapeHtml = (text) => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+  const textElements = displayLines.map((line, i) => {
+    const y = 90 + (i - displayLines.length / 2) * 20;
+    return '<text x="60" y="' + y + '" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="500">' + escapeHtml(line) + '</text>';
+  }).join('');
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="180" viewBox="0 0 120 180"><rect width="120" height="180" fill="#0f172a"/><rect x="10" y="10" width="100" height="160" rx="4" fill="none" stroke="#1e293b" stroke-width="1"/>' + textElements + '</svg>';
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+};
 const DEFAULT_ROOM_COOKIE = 'shovo_default_room';
 let activeTab = 'unwatched';
 let searchTimer;
@@ -207,7 +236,7 @@ const updateRoomCount = () => {
 
 const getLargeImage = (url) => {
   if (!url) {
-    return 'https://via.placeholder.com/500x750?text=No+Image';
+    return generatePlaceholderPoster('No Image');
   }
   if (url.includes('._V1_')) {
     return url.replace(/_UX\d+_CR0,0,\d+,\d+_AL_/i, '_UX500_CR0,0,500,750_AL_');
@@ -671,7 +700,7 @@ const buildCard = (item, mode) => {
   article.dataset.typeLabel = item.type_label || '';
   article.dataset.watched = item.watched ? '1' : '0';
   article.dataset.title = item.title || '';
-  image.src = item.image || 'https://via.placeholder.com/300x450?text=No+Image';
+  image.src = item.image || generatePlaceholderPoster(item.title);
   image.alt = `${item.title} poster`;
   title.textContent = item.title;
   title.href = `https://www.imdb.com/title/${item.title_id}/`;

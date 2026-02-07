@@ -75,8 +75,8 @@ export async function getTrending() {
  * @returns {Promise<object>} - List data
  */
 export async function getList(room, status, page = 1, perPage = MAX_RESULTS) {
-  // Check cache first
-  const cacheKey = getListCacheKey(room, status, page);
+  // Check cache first - include perPage in cache key to avoid conflicts
+  const cacheKey = getListCacheKey(room, status, page, perPage);
   const cached = getCached(cacheKey);
   if (cached) {
     return cached;

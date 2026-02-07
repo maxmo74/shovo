@@ -10,7 +10,7 @@ from flask import g
 
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(APP_ROOT, "data.sqlite3")
-CACHE_TTL_SECONDS = 60 * 60
+CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
 
 
 def get_db() -> sqlite3.Connection:
