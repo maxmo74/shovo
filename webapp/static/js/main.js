@@ -662,38 +662,27 @@ const renderVisitedRooms = () => {
     const wrapper = document.createElement('div');
     wrapper.className = 'visited-room';
     wrapper.dataset.room = roomId;
-    const countBadge = document.createElement('div');
-    countBadge.className = 'visited-room-count';
-    countBadge.textContent = data.count !== undefined ? String(data.count) : '…';
     const header = document.createElement('div');
     header.className = 'visited-room-header';
+    const nameRow = document.createElement('div');
+    nameRow.className = 'visited-room-name-row';
     const name = document.createElement('div');
     name.className = 'visited-room-name';
     name.textContent = roomId;
+    const countBadge = document.createElement('span');
+    countBadge.className = 'visited-room-count';
+    countBadge.textContent = data.count !== undefined ? String(data.count) : '…';
+    nameRow.appendChild(name);
+    nameRow.appendChild(countBadge);
     const headerActions = document.createElement('div');
     headerActions.className = 'visited-room-actions';
-    const status = document.createElement('span');
-    status.className = 'visited-room-status room-visibility';
+    const status = document.createElement('button');
+    status.className = 'visited-room-status room-visibility ghost';
+    status.type = 'button';
     status.textContent = data.private ? 'Private' : 'Public';
     if (data.private) status.classList.add('is-private');
-    const openButton = document.createElement('button');
-    openButton.className = 'ghost visited-room-open';
-    openButton.type = 'button';
-    openButton.textContent = 'Open';
-    openButton.addEventListener('click', () => {
-      window.location.href = `/r/${encodeURIComponent(roomId)}`;
-    });
-    headerActions.appendChild(status);
-    headerActions.appendChild(openButton);
-    header.appendChild(name);
-    header.appendChild(headerActions);
-    const toggleRow = document.createElement('label');
-    toggleRow.className = 'visited-room-toggle';
-    const toggle = document.createElement('input');
-    toggle.type = 'checkbox';
-    toggle.checked = Boolean(data.private);
-    toggle.addEventListener('change', () => {
-      data.private = toggle.checked;
+    status.addEventListener('click', () => {
+      data.private = !data.private;
       if (data.private && !data.password) {
         data.password = generatePassword();
       }
@@ -708,16 +697,21 @@ const renderVisitedRooms = () => {
       updateRoomVisibilityBadge();
       renderVisitedRooms();
     });
-    const toggleText = document.createElement('span');
-    toggleText.textContent = 'Private list';
-    toggleRow.appendChild(toggle);
-    toggleRow.appendChild(toggleText);
+    const openButton = document.createElement('button');
+    openButton.className = 'ghost visited-room-open';
+    openButton.type = 'button';
+    openButton.textContent = 'Open';
+    openButton.addEventListener('click', () => {
+      window.location.href = `/r/${encodeURIComponent(roomId)}`;
+    });
+    headerActions.appendChild(status);
+    headerActions.appendChild(openButton);
+    header.appendChild(nameRow);
+    header.appendChild(headerActions);
     const password = document.createElement('div');
     password.className = 'visited-room-password';
     password.textContent = data.private ? `Password: ${data.password}` : 'Password: —';
-    wrapper.appendChild(countBadge);
     wrapper.appendChild(header);
-    wrapper.appendChild(toggleRow);
     wrapper.appendChild(password);
     visitedRoomsContainer.appendChild(wrapper);
   });

@@ -3,7 +3,7 @@
  */
 
 const CACHE_PREFIX = 'shovo_cache_';
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+const CACHE_TTL = 60 * 60 * 24 * 1000; // 24 hours in milliseconds
 
 /**
  * Get an item from localStorage cache
