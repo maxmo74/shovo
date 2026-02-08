@@ -208,6 +208,67 @@ export function needsDetails(item) {
 }
 
 /**
+ * Build desktop search result with compact layout
+ * @param {object} item - Item data
+ * @param {HTMLTemplateElement} template - Desktop search template
+ * @param {object} handlers - Event handlers
+ * @returns {HTMLElement} - Desktop search card element
+ */
+export function buildDesktopSearchCard(item, template, handlers) {
+  const fragment = template.content.cloneNode(true);
+  const article = fragment.querySelector('.desktop-search-card');
+  const image = fragment.querySelector('.desktop-search-image');
+  const title = fragment.querySelector('.desktop-search-title-link');
+  const year = fragment.querySelector('.desktop-search-year');
+  const meta = fragment.querySelector('.desktop-search-meta');
+  const rating = fragment.querySelector('.desktop-search-rating');
+  const watchlistButton = fragment.querySelector('.watchlist-action');
+  const watchedButton = fragment.querySelector('.watched-action');
+
+  // Set basic data
+  article.dataset.titleId = item.title_id;
+  article.dataset.typeLabel = item.type_label || '';
+
+  // Set image - use placeholder if no image available
+  image.src = item.image || generatePlaceholderPoster(item.title);
+  image.alt = `${item.title} poster`;
+  image.loading = 'lazy';
+
+  // Set title and link
+  title.textContent = item.title;
+  title.href = `https://www.imdb.com/title/${item.title_id}/`;
+
+  // Set year
+  if (item.year) {
+    year.textContent = item.year;
+  } else {
+    year.style.display = 'none';
+  }
+
+  // Set meta and ratings
+  if (meta) meta.textContent = buildMetaText(item);
+  if (rating) rating.innerHTML = buildRatingHtml(item);
+
+  // Image click handler
+  if (handlers.onImageClick) {
+    image.addEventListener('click', () => {
+      handlers.onImageClick(getLargeImage(item.image), `${item.title} poster`);
+    });
+  }
+
+  // Button handlers
+  if (handlers.onAdd && watchlistButton) {
+    watchlistButton.addEventListener('click', () => handlers.onAdd(item, false, article));
+  }
+
+  if (handlers.onAddWatched && watchedButton) {
+    watchedButton.addEventListener('click', () => handlers.onAddWatched(item, true, article));
+  }
+
+  return article;
+}
+
+/**
  * Build mobile search result
  * @param {object} item - Item data
  * @param {HTMLTemplateElement} template - Mobile template element
@@ -226,7 +287,7 @@ export function buildMobileSearchResult(item, template, onAdd) {
   // Set basic info
   button.dataset.titleId = item.title_id;
   button.dataset.typeLabel = item.type_label || '';
-  
+
   // Set image - use placeholder if no image available
   image.src = item.image || generatePlaceholderPoster(item.title);
   image.alt = `${item.title} poster`;

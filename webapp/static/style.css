@@ -87,7 +87,7 @@ header h1 {
 
 .logo-play {
   font-size: 1.5rem;
-  color: #ffffff;
+  color: #dc2626;
   display: inline-flex;
   align-items: flex-end;
   margin-right: 0.15rem;
@@ -853,6 +853,7 @@ button.ghost {
 
   .logo-play {
     font-size: 1.15rem;
+    color: #dc2626;
   }
 
   .version-tag {
@@ -1316,6 +1317,19 @@ button.ghost {
   gap: 0.35rem;
 }
 
+.visited-room-delete {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.45rem;
+  background: rgba(248, 113, 113, 0.15);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.visited-room-delete:hover {
+  background: rgba(248, 113, 113, 0.25);
+  color: #ef4444;
+}
+
 .visited-room-open {
   font-size: 0.7rem;
   padding: 0.2rem 0.45rem;
@@ -1408,6 +1422,29 @@ button.ghost {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.option-share-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 180px;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.2);
+  color: inherit;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.option-share-button:hover {
+  transform: translateY(-1px);
+  background: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2);
 }
 
 .option-share,
@@ -1678,7 +1715,147 @@ button.ghost {
     }
   }
 
-  /* Mobile-specific compact search results */
+  /* Desktop search/trending cards - compact layout with half-size poster */
+.desktop-search-card {
+  display: flex;
+  gap: 0.75rem;
+  background: rgba(8, 15, 28, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius);
+  padding: 0.65rem;
+  transition: border 150ms ease, transform 150ms ease;
+  align-items: center;
+}
+
+.desktop-search-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.35);
+  transform: translateY(-1px);
+}
+
+.desktop-search-image {
+  width: 36px;
+  min-width: 36px;
+  height: 54px;
+  object-fit: cover;
+  background: #0f172a;
+  border-radius: calc(var(--radius) * 0.5);
+  cursor: zoom-in;
+}
+
+.desktop-search-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.desktop-search-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.desktop-search-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.desktop-search-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.desktop-search-title-link:hover,
+.desktop-search-title-link:focus-visible {
+  text-decoration: underline;
+}
+
+.desktop-search-year {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.desktop-search-meta {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.desktop-search-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.desktop-search-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.desktop-search-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+  white-space: nowrap;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.desktop-search-action:hover {
+  transform: translateY(-1px);
+}
+
+.watchlist-action {
+  background: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+.watchlist-action:hover {
+  background: rgba(34, 197, 94, 0.3);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+}
+
+.watched-action {
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+}
+
+.watched-action:hover {
+  background: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.action-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.action-text {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Mobile-specific compact search results */
   .mobile-search-result {
     display: none; /* Hidden by default */
     width: 100%;
@@ -1813,6 +1990,7 @@ button.ghost {
 
   .logo-play {
     font-size: 1.1rem;
+    color: #dc2626;
   }
 
   .version-tag {
@@ -2024,6 +2202,7 @@ button.ghost {
 
   .logo-play {
     font-size: 1rem;
+    color: #dc2626;
   }
 
   .room-name {

@@ -25,9 +25,11 @@ import {
   updateOrder,
   startRefresh,
   getRefreshStatus,
+  getRoomPrivacy,
+  setRoomPrivacy,
   MAX_RESULTS
 } from './api.js';
-import { buildCard, buildMobileSearchResult, applyCardDetails, needsDetails } from './cards.js';
+import { buildCard, buildMobileSearchResult, buildDesktopSearchCard, applyCardDetails, needsDetails } from './cards.js';
 import { attachDragHandlers, getCurrentOrder } from './drag.js';
 import { attachCardLongPressHandlers, isMobile, setupMobileEnhancements, setupCardSwipeGestures } from './mobile.js';
 import { getCached, setCached, getDetailCacheKey } from './cache.js';
@@ -46,6 +48,7 @@ const tabWatched = document.getElementById('tab-watched');
 const countWatchlist = document.getElementById('count-watchlist');
 const countWatched = document.getElementById('count-watched');
 const cardTemplate = document.getElementById('result-card-template');
+const desktopSearchTemplate = document.getElementById('desktop-search-card-template');
 const trendingButton = document.getElementById('trending-button');
 const refreshDatabaseButton = document.getElementById('refresh-database');
 const menu = document.querySelector('.menu');
@@ -334,11 +337,11 @@ const renderSearchResults = (items) => {
   const limited = items.slice(0, MAX_RESULTS);
   if (!limited.length) return;
   openSearchModal();
-  
+
   // Check if we should use mobile layout
   const isMobileLayout = window.matchMedia('(max-width: 768px)').matches;
   const mobileTemplate = document.getElementById('mobile-search-card-template');
-  
+
   if (isMobileLayout && mobileTemplate) {
     // Use mobile compact layout
     searchResults.classList.add('mobile-view');
@@ -349,13 +352,22 @@ const renderSearchResults = (items) => {
       searchResults.appendChild(mobileResult);
     });
   } else {
-    // Use desktop layout
+    // Use desktop layout with compact cards
     searchResults.classList.remove('mobile-view');
-    limited.forEach((item) => {
-      const card = buildCard(item, 'search', cardTemplate, cardHandlers);
-      searchResults.appendChild(card);
-      requestDetails(item, card);
-    });
+    if (desktopSearchTemplate) {
+      limited.forEach((item) => {
+        const card = buildDesktopSearchCard(item, desktopSearchTemplate, cardHandlers);
+        searchResults.appendChild(card);
+        requestDetails(item, card);
+      });
+    } else {
+      // Fallback to regular cards if template not found
+      limited.forEach((item) => {
+        const card = buildCard(item, 'search', cardTemplate, cardHandlers);
+        searchResults.appendChild(card);
+        requestDetails(item, card);
+      });
+    }
   }
 };
 
@@ -366,7 +378,7 @@ const renderTrendingResults = (items) => {
   openTrendingPopover();
   const isMobileLayout = window.matchMedia('(max-width: 768px)').matches;
   const mobileTemplate = document.getElementById('mobile-search-card-template');
-  
+
   if (isMobileLayout && mobileTemplate) {
     // Use mobile compact layout for trending results
     limited.forEach((item) => {
@@ -376,12 +388,21 @@ const renderTrendingResults = (items) => {
       trendingResults.appendChild(mobileResult);
     });
   } else {
-    // Use desktop layout
-    limited.forEach((item) => {
-      const card = buildCard(item, 'list', cardTemplate, cardHandlers);
-      trendingResults.appendChild(card);
-      requestDetails(item, card);
-    });
+    // Use desktop layout with compact cards
+    if (desktopSearchTemplate) {
+      limited.forEach((item) => {
+        const card = buildDesktopSearchCard(item, desktopSearchTemplate, cardHandlers);
+        trendingResults.appendChild(card);
+        requestDetails(item, card);
+      });
+    } else {
+      // Fallback to regular cards if template not found
+      limited.forEach((item) => {
+        const card = buildCard(item, 'list', cardTemplate, cardHandlers);
+        trendingResults.appendChild(card);
+        requestDetails(item, card);
+      });
+    }
   }
 };
 
@@ -722,7 +743,7 @@ const renderVisitedRooms = () => {
     status.type = 'button';
     status.textContent = data.private ? 'Private' : 'Public';
     if (data.private) status.classList.add('is-private');
-    status.addEventListener('click', () => {
+    status.addEventListener('click', async () => {
       data.private = !data.private;
       if (data.private && !data.password) {
         data.password = generatePassword();
@@ -735,8 +756,47 @@ const renderVisitedRooms = () => {
       }
       settings.rooms[roomId] = data;
       saveSettings(settings);
+      // Save privacy to server
+      try {
+        await setRoomPrivacy(roomId, data.private, data.password);
+      } catch (error) {
+        console.error('Failed to update room privacy on server:', error);
+      }
       updateRoomVisibilityBadge();
       renderVisitedRooms();
+    });
+    const deleteButton = document.createElement('button');
+    deleteButton.className = 'ghost visited-room-delete';
+    deleteButton.type = 'button';
+    deleteButton.textContent = 'Delete';
+    deleteButton.addEventListener('click', async () => {
+      const confirmDelete = confirm(`Are you sure you want to delete the list "${roomId}"? This cannot be undone.`);
+      if (!confirmDelete) return;
+      try {
+        const response = await fetch('/api/list/delete-room', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ room: roomId })
+        });
+        if (!response.ok) {
+          alert('Failed to delete list');
+          return;
+        }
+        // Remove from local settings
+        delete settings.rooms[roomId];
+        saveSettings(settings);
+        // If we deleted the current room, redirect to home
+        if (roomId === room) {
+          window.location.href = '/';
+          return;
+        }
+        // Refresh the visited rooms list
+        renderVisitedRooms();
+        updateVisitedRoomCounts();
+        updateRoomCount();
+      } catch (error) {
+        alert('Failed to delete list');
+      }
     });
     const openButton = document.createElement('button');
     openButton.className = 'ghost visited-room-open';
@@ -746,6 +806,7 @@ const renderVisitedRooms = () => {
       window.location.href = `/r/${encodeURIComponent(roomId)}`;
     });
     headerActions.appendChild(status);
+    headerActions.appendChild(deleteButton);
     headerActions.appendChild(openButton);
     header.appendChild(nameRow);
     header.appendChild(headerActions);
@@ -812,11 +873,29 @@ const applyShareToken = () => {
 };
 
 // Initialize settings
-const initializeSettings = () => {
+const initializeSettings = async () => {
   settings = loadSettings();
   ensureRoomState(settings, room);
   if (!settings.defaultRoom) {
     settings.defaultRoom = room;
+  }
+  // Fetch room privacy from server
+  try {
+    const privacyData = await getRoomPrivacy(room);
+    if (privacyData.is_private) {
+      settings.rooms[room].private = true;
+      settings.rooms[room].password = privacyData.password;
+      // If not authorized yet, mark as unauthorized
+      if (!settings.rooms[room].authorized) {
+        settings.rooms[room].authorized = false;
+      }
+    } else {
+      settings.rooms[room].private = false;
+      settings.rooms[room].password = '';
+      settings.rooms[room].authorized = true;
+    }
+  } catch (error) {
+    console.error('Failed to fetch room privacy:', error);
   }
   applyCompactSetting();
   updateRoomVisibilityBadge();
@@ -1211,12 +1290,14 @@ document.addEventListener('click', (event) => {
 });
 
 // Initialize
-initializeSettings();
-applyShareToken();
-updateRoomVisibilityBadge();
-updateRoomCount();
-loadList();
-renderSearchResults([]);
+(async () => {
+  await initializeSettings();
+  applyShareToken();
+  updateRoomVisibilityBadge();
+  updateRoomCount();
+  await loadList();
+  renderSearchResults([]);
+})();
 
 // Setup mobile enhancements
 setupMobileEnhancements(loadList, {

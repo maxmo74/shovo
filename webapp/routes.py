@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.57"
+APP_VERSION = "1.6.58"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 
@@ -454,6 +454,70 @@ def api_rename_list() -> Any:
     conn.execute("UPDATE lists SET room = ? WHERE room = ?", (next_room, room))
     conn.commit()
     return jsonify({"status": "ok", "room": next_room})
+
+
+@bp.route("/api/list/delete-room", methods=["DELETE"])
+def api_delete_room() -> Any:
+    """Delete all data for a room/list."""
+    if not request.is_json:
+        return jsonify({"error": "invalid_payload"}), 400
+    target_room = request.json.get("room")
+    if not target_room:
+        return jsonify({"error": "missing_room"}), 400
+    conn = get_db()
+    migrate_db(conn)
+    conn.execute("DELETE FROM lists WHERE room = ?", (target_room,))
+    conn.execute("DELETE FROM room_settings WHERE room = ?", (target_room,))
+    conn.commit()
+    return jsonify({"status": "ok"})
+
+
+@bp.route("/api/room/privacy", methods=["GET"])
+def api_get_room_privacy() -> Any:
+    """Get room privacy settings."""
+    target_room = request.args.get("room", "")
+    if not target_room:
+        return jsonify({"error": "missing_room"}), 400
+    conn = get_db()
+    migrate_db(conn)
+    row = conn.execute(
+        "SELECT is_private, password_hash FROM room_settings WHERE room = ?",
+        (target_room,),
+    ).fetchone()
+    if not row:
+        return jsonify({"is_private": False, "password": ""})
+    # For private rooms, return the password hash (client will store it)
+    return jsonify({
+        "is_private": bool(row["is_private"]),
+        "password": row["password_hash"] or ""
+    })
+
+
+@bp.route("/api/room/privacy", methods=["POST"])
+def api_set_room_privacy() -> Any:
+    """Set room privacy settings."""
+    if not request.is_json:
+        return jsonify({"error": "invalid_payload"}), 400
+    target_room = request.json.get("room")
+    is_private = request.json.get("is_private", False)
+    password = request.json.get("password", "")
+    if not target_room:
+        return jsonify({"error": "missing_room"}), 400
+    conn = get_db()
+    migrate_db(conn)
+    if is_private and not password:
+        return jsonify({"error": "password_required"}), 400
+    conn.execute(
+        """
+        INSERT INTO room_settings (room, is_private, password_hash, created_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(room) DO UPDATE SET is_private = ?, password_hash = ?
+        """,
+        (target_room, 1 if is_private else 0, password if is_private else None, int(time.time()),
+         1 if is_private else 0, password if is_private else None),
+    )
+    conn.commit()
+    return jsonify({"status": "ok"})
 
 
 def _start_refresh(room: str, user_agent: str) -> int:

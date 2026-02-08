@@ -74,6 +74,13 @@ def migrate_db(conn: sqlite3.Connection) -> None:
             original_language TEXT,
             cached_at INTEGER NOT NULL
         );
+
+        CREATE TABLE IF NOT EXISTS room_settings (
+            room TEXT PRIMARY KEY,
+            is_private INTEGER NOT NULL DEFAULT 0,
+            password_hash TEXT,
+            created_at INTEGER NOT NULL
+        );
         """
     )
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(lists)")}

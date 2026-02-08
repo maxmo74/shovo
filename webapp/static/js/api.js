@@ -251,4 +251,36 @@ export async function getRefreshStatus(room) {
   return response.json();
 }
 
+/**
+ * Get room privacy settings
+ * @param {string} room - Room ID
+ * @returns {Promise<object>} - Privacy settings
+ */
+export async function getRoomPrivacy(room) {
+  const response = await fetch(`/api/room/privacy?room=${encodeURIComponent(room)}`);
+  if (!response.ok) {
+    throw new Error('Failed to get room privacy');
+  }
+  return response.json();
+}
+
+/**
+ * Set room privacy settings
+ * @param {string} room - Room ID
+ * @param {boolean} isPrivate - Whether room is private
+ * @param {string} password - Room password
+ * @returns {Promise<object>} - Response
+ */
+export async function setRoomPrivacy(room, isPrivate, password) {
+  const response = await fetch('/api/room/privacy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room, is_private: isPrivate, password })
+  });
+  if (!response.ok) {
+    throw new Error('Failed to set room privacy');
+  }
+  return response.json();
+}
+
 export { MAX_RESULTS };

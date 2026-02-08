@@ -8,6 +8,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Shovo</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
     <link rel="stylesheet" href="/static/style.css?v={{ app_version }}" />
     <link rel="manifest" href="/manifest.json?v={{ app_version }}" />
     <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png" />
@@ -131,6 +133,33 @@
       </article>
     </template>
 
+    <!-- Desktop search/trending result template with compact layout -->
+    <template id="desktop-search-card-template">
+      <article class="desktop-search-card">
+        <img class="desktop-search-image" alt="" loading="lazy" />
+        <div class="desktop-search-content">
+          <div class="desktop-search-header">
+            <h4 class="desktop-search-title">
+              <a class="desktop-search-title-link" target="_blank" rel="noopener noreferrer"></a>
+            </h4>
+            <span class="desktop-search-year"></span>
+          </div>
+          <p class="desktop-search-meta"></p>
+          <div class="desktop-search-rating"></div>
+        </div>
+        <div class="desktop-search-actions">
+          <button class="desktop-search-action watchlist-action" type="button" aria-label="Add to watchlist" title="Add to watchlist">
+            <span class="action-icon">✓</span>
+            <span class="action-text">Watchlist</span>
+          </button>
+          <button class="desktop-search-action watched-action" type="button" aria-label="Add as watched" title="Add as watched">
+            <span class="action-icon">✓</span>
+            <span class="action-text">Watched</span>
+          </button>
+        </div>
+      </article>
+    </template>
+
     <!-- Mobile-specific compact search result template -->
     <template id="mobile-search-card-template">
       <button class="mobile-search-result" type="button">
@@ -246,9 +275,9 @@
         </div>
         <div class="option-group">
           <div class="option-actions">
-            <button class="ghost option-share" id="open-share" type="button">
+            <button class="option-share-button" id="open-share" type="button">
               <img src="/static/share.svg" alt="" class="share-icon-small" />
-              <span>Share this list</span>
+              <span>Share current list: <span id="share-list-name">{{ room }}</span></span>
             </button>
             <button class="ghost option-new-list" id="open-new-list" type="button">
               <span>➕</span>
