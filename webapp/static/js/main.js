@@ -90,6 +90,14 @@ const shareInstagramButton = document.getElementById('share-instagram');
 const shareModalMessage = document.getElementById('share-modal-message');
 const shareModalListName = document.getElementById('share-modal-list-name');
 const shareModalError = document.getElementById('share-modal-error');
+const sharePrivacyToggle = document.getElementById('share-privacy-toggle');
+const sharePrivacyStatus = document.getElementById('share-privacy-status');
+const sharePrivacyPassword = document.getElementById('share-privacy-password');
+const sharePrivacyPasswordValue = document.getElementById('share-privacy-password-value');
+const errorModal = document.getElementById('error-modal');
+const errorModalClose = document.getElementById('error-modal-close');
+const errorModalMessage = document.getElementById('error-modal-message');
+const errorModalOk = document.getElementById('error-modal-ok');
 const searchClearButton = document.getElementById('search-clear');
 const filterClearButton = document.getElementById('filter-clear');
 const privacyModal = document.getElementById('privacy-modal');
@@ -165,6 +173,18 @@ const applyFilter = (items) => {
 };
 
 // Modal functions
+const showError = (message) => {
+  if (!errorModal || !errorModalMessage) {
+    console.error('Error:', message);
+    alert(message); // Fallback to alert if modal not available
+    return;
+  }
+  errorModalMessage.textContent = message;
+  openModal(errorModal);
+};
+
+const closeErrorModal = () => closeModal(errorModal);
+
 const openImageModal = (src, alt) => {
   if (!imageModal || !imageModalImage) return;
   imageModalImage.src = src;
@@ -221,12 +241,30 @@ const openShareModal = () => {
     shareModalError.textContent = '';
   }
 
+  // Update privacy status display
+  const isPrivate = isRoomPrivate(settings, room);
+  if (sharePrivacyStatus) {
+    sharePrivacyStatus.textContent = isPrivate ? 'Private' : 'Public';
+    sharePrivacyStatus.classList.toggle('is-private', isPrivate);
+  }
+
+  // Show/hide password
+  if (sharePrivacyPassword && sharePrivacyPasswordValue) {
+    if (isPrivate) {
+      const password = getRoomPassword(settings, room);
+      sharePrivacyPasswordValue.textContent = password || '(not set)';
+      sharePrivacyPassword.hidden = false;
+    } else {
+      sharePrivacyPassword.hidden = true;
+    }
+  }
+
   const token = encodeShareToken({
     room,
-    password: isRoomPrivate(settings, room) ? getRoomPassword(settings, room) : ''
+    password: isPrivate ? getRoomPassword(settings, room) : ''
   });
   const shareUrl = `${window.location.origin}/r/${encodeURIComponent(room)}?share=${token}`;
-  shareModalMessage.textContent = isRoomPrivate(settings, room)
+  shareModalMessage.textContent = isPrivate
     ? 'Sharing will include a secure token to access this private list.'
     : 'This list is public. Share the link below.';
   shareModal.dataset.shareUrl = shareUrl;
@@ -259,7 +297,7 @@ const cardHandlers = {
       pageState[watched ? 'watched' : 'unwatched'] = 1;
       await loadList();
     } catch (error) {
-      alert('Failed to add item.');
+      showError('Failed to add item. Please try again.');
     }
   },
   onAddWatched: async (item, watched, cardNode) => {
@@ -272,7 +310,7 @@ const cardHandlers = {
       pageState.watched = 1;
       await loadList();
     } catch (error) {
-      alert('Failed to add item.');
+      showError('Failed to add item. Please try again.');
     }
   },
   onToggleWatched: async (item) => {
@@ -280,7 +318,7 @@ const cardHandlers = {
       await updateWatched(room, item.title_id, !item.watched);
       await loadList();
     } catch (error) {
-      alert('Failed to update item.');
+      showError('Failed to update item. Please try again.');
     }
   },
   onRemove: async (item) => {
@@ -288,7 +326,7 @@ const cardHandlers = {
       await apiRemoveFromList(room, item.title_id);
       await loadList();
     } catch (error) {
-      alert('Failed to remove item.');
+      showError('Failed to remove item. Please try again.');
     }
   },
   onMoveTop: async (card) => {
@@ -457,7 +495,7 @@ const renderList = (items) => {
             await updateWatched(room, titleId, newWatched);
             await loadList();
           } catch (error) {
-            alert('Failed to update item.');
+            showError('Failed to update item. Please try again.');
           }
         }
       }
@@ -472,7 +510,7 @@ const syncOrder = async () => {
   try {
     await updateOrder(room, order);
   } catch (error) {
-    alert('Failed to save order.');
+    showError('Failed to save order. Please try again.');
   }
 };
 
@@ -710,7 +748,7 @@ const renderVisitedRooms = () => {
       if (!newName || newName === roomId) return;
       const sanitized = newName.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
       if (!sanitized) {
-        alert('Invalid list name. Use only letters, numbers, and hyphens.');
+        showError('Invalid list name. Use only letters, numbers, and hyphens.');
         return;
       }
       try {
@@ -721,7 +759,7 @@ const renderVisitedRooms = () => {
         });
         const result = await response.json();
         if (!response.ok) {
-          alert(result.message || 'Failed to rename list');
+          showError(result.message || 'Failed to rename list.');
           return;
         }
         // Update local settings
@@ -734,7 +772,7 @@ const renderVisitedRooms = () => {
         renderVisitedRooms();
         updateVisitedRoomCounts();
       } catch (error) {
-        alert('Failed to rename list');
+        showError('Failed to rename list. Please try again.');
       }
     });
     const countBadge = document.createElement('span');
@@ -785,7 +823,7 @@ const renderVisitedRooms = () => {
           body: JSON.stringify({ room: roomId })
         });
         if (!response.ok) {
-          alert('Failed to delete list');
+          showError('Failed to delete list. Please try again.');
           return;
         }
         // Remove from local settings
@@ -801,7 +839,7 @@ const renderVisitedRooms = () => {
         updateVisitedRoomCounts();
         updateRoomCount();
       } catch (error) {
-        alert('Failed to delete list');
+        showError('Failed to delete list. Please try again.');
       }
     });
     const openButton = document.createElement('button');
@@ -968,6 +1006,12 @@ cardActionModal?.addEventListener('click', (event) => {
   if (event.target === cardActionModal) closeCardActionModal();
 });
 
+errorModalClose?.addEventListener('click', closeErrorModal);
+errorModalOk?.addEventListener('click', closeErrorModal);
+errorModal?.addEventListener('click', (event) => {
+  if (event.target === errorModal) closeErrorModal();
+});
+
 refreshConfirmCancel?.addEventListener('click', closeRefreshConfirmModal);
 refreshConfirmClose?.addEventListener('click', closeRefreshConfirmModal);
 refreshConfirmModal?.addEventListener('click', (event) => {
@@ -1035,6 +1079,37 @@ defaultRoomSelect?.addEventListener('change', (event) => {
   if (!(target instanceof HTMLSelectElement)) return;
   settings.defaultRoom = target.value;
   saveSettings(settings);
+});
+
+// Share privacy toggle handler
+sharePrivacyToggle?.addEventListener('click', async () => {
+  const currentlyPrivate = isRoomPrivate(settings, room);
+  const newPrivate = !currentlyPrivate;
+
+  // Update local settings
+  settings.rooms[room].private = newPrivate;
+  if (newPrivate && !settings.rooms[room].password) {
+    settings.rooms[room].password = generatePassword();
+  }
+  if (!newPrivate) {
+    settings.rooms[room].password = '';
+    settings.rooms[room].authorized = true;
+  } else {
+    settings.rooms[room].authorized = true;
+  }
+  saveSettings(settings);
+
+  // Update server
+  try {
+    await setRoomPrivacy(room, newPrivate, settings.rooms[room].password);
+  } catch (error) {
+    console.error('Failed to update room privacy on server:', error);
+  }
+
+  // Update visibility badge and reopen modal to refresh
+  updateRoomVisibilityBadge();
+  closeShareModal();
+  openShareModal();
 });
 
 // Share handlers
@@ -1193,11 +1268,11 @@ refreshConfirmStart?.addEventListener('click', async () => {
     refreshOwner = false;
     closeRefreshProgressModal();
     if (error.message === 'Refresh already in progress') {
-      alert('A database refresh is already in progress.');
+      showError('A database refresh is already in progress.');
       pollRefreshStatus();
       return;
     }
-    alert('Unable to refresh database.');
+    showError('Unable to refresh database. Please try again.');
   }
 });
 
@@ -1278,7 +1353,8 @@ setupEscapeHandler(
     privacy: privacyModal,
     options: optionsModal,
     cardActions: cardActionModal,
-    newList: newListModal
+    newList: newListModal,
+    error: errorModal
   },
   {
     search: closeSearchModal,
@@ -1289,7 +1365,8 @@ setupEscapeHandler(
     privacy: closePrivacyModal,
     options: closeOptionsModal,
     cardActions: closeCardActionModal,
-    newList: closeNewListModal
+    newList: closeNewListModal,
+    error: closeErrorModal
   }
 );
 
@@ -1332,7 +1409,7 @@ setupMobileEnhancements(loadList, {
         await loadList();
       }
     } catch (error) {
-      alert('Failed to remove item.');
+      showError('Failed to remove item. Please try again.');
     }
   },
   onCardToggle: async (titleId) => {
@@ -1344,7 +1421,7 @@ setupMobileEnhancements(loadList, {
         await loadList();
       }
     } catch (error) {
-      alert('Failed to toggle item.');
+      showError('Failed to toggle item. Please try again.');
     }
   }
 });

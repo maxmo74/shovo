@@ -341,7 +341,7 @@ button.ghost {
 .search-popover {
   position: absolute;
   top: calc(100% + 0.6rem);
-  left: 0;
+  left: 30%;
   right: 0;
   background: var(--surface-strong);
   border: 1px solid rgba(148, 163, 184, 0.25);
@@ -1411,6 +1411,37 @@ button.ghost {
   border-radius: var(--radius);
   background: rgba(148, 163, 184, 0.2);
   color: var(--text-muted);
+}
+
+.share-privacy-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.share-privacy-toggle {
+  align-self: flex-start;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+}
+
+.share-privacy-toggle .is-private {
+  color: var(--accent);
+}
+
+.share-privacy-password {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.share-privacy-password span {
+  font-family: 'Courier New', monospace;
+  color: var(--accent);
+  font-weight: 500;
 }
 
 .share-actions {

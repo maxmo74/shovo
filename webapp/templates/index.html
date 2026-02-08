@@ -303,6 +303,14 @@
         </div>
         <div class="modal-content">
           <p class="modal-body modal-error" id="share-modal-error" hidden></p>
+          <div class="share-privacy-controls">
+            <button class="ghost share-privacy-toggle" id="share-privacy-toggle" type="button">
+              <span id="share-privacy-status">Public</span>
+            </button>
+            <p class="share-privacy-password" id="share-privacy-password" hidden>
+              Password: <span id="share-privacy-password-value"></span>
+            </p>
+          </div>
           <p class="modal-body" id="share-modal-message"></p>
           <div class="share-actions">
             <button class="ghost share-option" id="share-copy" type="button">
@@ -383,6 +391,23 @@
             <button id="new-list-create" type="button">Create</button>
           </div>
           <p class="modal-body modal-error" id="new-list-error" hidden></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="error-modal" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="modal error-modal">
+        <div class="modal-header modal-header--compact">
+          <p class="modal-subtitle">Error</p>
+          <button class="modal-close" id="error-modal-close" type="button" aria-label="Close error">
+            ×
+          </button>
+        </div>
+        <div class="modal-content">
+          <p class="modal-body modal-error" id="error-modal-message"></p>
+          <div class="modal-actions">
+            <button id="error-modal-ok" type="button">OK</button>
+          </div>
         </div>
       </div>
     </div>
