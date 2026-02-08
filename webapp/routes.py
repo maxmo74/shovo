@@ -49,7 +49,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.58"
+APP_VERSION = "1.6.59"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 

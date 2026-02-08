@@ -198,17 +198,6 @@ def get_ratings(title_id: str, user_agent: str) -> tuple[str | None, str | None]
         return imdb_rating, rotten_rating
 
 
-def get_rating(title_id: str, user_agent: str) -> str | None:
-    """Get IMDB rating for a title."""
-    imdb_rating, _ = get_ratings(title_id, user_agent)
-    return imdb_rating
-
-
-def get_rotten_tomatoes(title_id: str, user_agent: str) -> str | None:
-    """Get Rotten Tomatoes rating for a title."""
-    _, rotten_rating = get_ratings(title_id, user_agent)
-    return rotten_rating
-
 
 def parse_suggestion_item(
     item: dict[str, Any], user_agent: str, include_details: bool = True
