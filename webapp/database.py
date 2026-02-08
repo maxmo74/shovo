@@ -122,18 +122,20 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE metadata_cache ADD COLUMN original_language TEXT")
     # Migration: clear plaintext passwords (pre-hashing era)
     # Detect plaintext passwords: they won't start with recognized hash prefixes
-    plaintext_rows = conn.execute(
-        "SELECT room FROM room_settings WHERE password_hash IS NOT NULL AND password_hash != ''"
-    ).fetchall()
-    for row in plaintext_rows:
-        pwd = conn.execute(
-            "SELECT password_hash FROM room_settings WHERE room = ?", (row["room"],)
-        ).fetchone()["password_hash"]
-        if pwd and not pwd.startswith(("pbkdf2:", "scrypt:", "$2b$")):
-            conn.execute(
-                "UPDATE room_settings SET is_private = 0, password_hash = NULL WHERE room = ?",
-                (row["room"],),
-            )
+    try:
+        plaintext_rows = conn.execute(
+            "SELECT room, password_hash FROM room_settings WHERE password_hash IS NOT NULL AND password_hash != ''"
+        ).fetchall()
+        for row in plaintext_rows:
+            pwd = row["password_hash"]
+            if pwd and not pwd.startswith(("pbkdf2:", "scrypt:", "$2b$")):
+                conn.execute(
+                    "UPDATE room_settings SET is_private = 0, password_hash = NULL WHERE room = ?",
+                    (row["room"],),
+                )
+    except Exception:
+        # If migration fails, continue - this is not critical
+        pass
 
 
 def _backfill_positions(conn: sqlite3.Connection, force: bool = False) -> None:
