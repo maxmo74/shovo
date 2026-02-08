@@ -283,4 +283,22 @@ export async function setRoomPrivacy(room, isPrivate, password) {
   return response.json();
 }
 
+/**
+ * Verify a password for a private room
+ * @param {string} room - Room ID
+ * @param {string} password - Password to verify
+ * @returns {Promise<object>} - { authorized: boolean }
+ */
+export async function verifyRoomPassword(room, password) {
+  const response = await fetch('/api/room/verify-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room, password })
+  });
+  if (!response.ok) {
+    throw new Error('Failed to verify password');
+  }
+  return response.json();
+}
+
 export { MAX_RESULTS };

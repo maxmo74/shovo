@@ -6,10 +6,11 @@ from typing import Any
 
 import requests
 from flask import Blueprint, jsonify, redirect, render_template, request
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # Support both package and standalone imports
 try:
-    from .database import get_db, get_db_context, migrate_db
+    from .database import get_db, get_db_context
     from .external_api import (
         ALLOWED_TYPE_LABELS,
         MAX_RESULTS,
@@ -29,7 +30,7 @@ try:
         serialize_result,
     )
 except ImportError:
-    from database import get_db, get_db_context, migrate_db
+    from database import get_db, get_db_context
     from external_api import (
         ALLOWED_TYPE_LABELS,
         MAX_RESULTS,
@@ -49,7 +50,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.59"
+APP_VERSION = "1.6.60"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 
@@ -196,7 +197,6 @@ def api_list() -> Any:
         return jsonify({"error": "invalid_pagination_params"}), 400
     offset = (page - 1) * per_page
     conn = get_db()
-    migrate_db(conn)
     total_count = conn.execute(
         "SELECT COUNT(*) FROM lists WHERE room = ? AND watched = ?",
         (room, watched_flag),
@@ -317,7 +317,6 @@ def api_add() -> Any:
         return jsonify({"error": "missing_title"}), 400
     watched = parse_watched(data.get("watched", 0))
     conn = get_db()
-    migrate_db(conn)
     next_position = conn.execute(
         "SELECT COALESCE(MAX(position), 0) + 1 FROM lists WHERE room = ? AND watched = ?",
         (room, watched),
@@ -368,7 +367,6 @@ def api_patch_list() -> Any:
     if not title_id:
         return jsonify({"error": "missing_title_id"}), 400
     conn = get_db()
-    migrate_db(conn)
     conn.execute(
         "UPDATE lists SET watched = ? WHERE room = ? AND title_id = ?",
         (watched, room, title_id),
@@ -389,7 +387,6 @@ def api_order() -> Any:
     if not isinstance(order, list) or not order:
         return jsonify({"error": "invalid_order"}), 400
     conn = get_db()
-    migrate_db(conn)
     total = len(order)
     for index, title_id in enumerate(order):
         position = total - index
@@ -413,7 +410,6 @@ def api_delete() -> Any:
     if not title_id:
         return jsonify({"error": "missing_title_id"}), 400
     conn = get_db()
-    migrate_db(conn)
     conn.execute(
         "DELETE FROM lists WHERE room = ? AND title_id = ?",
         (room, title_id),
@@ -436,7 +432,6 @@ def api_rename_list() -> Any:
     if next_room == room:
         return jsonify({"status": "ok", "room": room})
     conn = get_db()
-    migrate_db(conn)
     existing = conn.execute(
         "SELECT 1 FROM lists WHERE room = ? LIMIT 1",
         (next_room,),
@@ -465,7 +460,6 @@ def api_delete_room() -> Any:
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
     conn = get_db()
-    migrate_db(conn)
     conn.execute("DELETE FROM lists WHERE room = ?", (target_room,))
     conn.execute("DELETE FROM room_settings WHERE room = ?", (target_room,))
     conn.commit()
@@ -474,28 +468,23 @@ def api_delete_room() -> Any:
 
 @bp.route("/api/room/privacy", methods=["GET"])
 def api_get_room_privacy() -> Any:
-    """Get room privacy settings."""
+    """Get room privacy settings (never exposes password)."""
     target_room = request.args.get("room", "")
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
     conn = get_db()
-    migrate_db(conn)
     row = conn.execute(
-        "SELECT is_private, password_hash FROM room_settings WHERE room = ?",
+        "SELECT is_private FROM room_settings WHERE room = ?",
         (target_room,),
     ).fetchone()
     if not row:
-        return jsonify({"is_private": False, "password": ""})
-    # For private rooms, return the password hash (client will store it)
-    return jsonify({
-        "is_private": bool(row["is_private"]),
-        "password": row["password_hash"] or ""
-    })
+        return jsonify({"is_private": False})
+    return jsonify({"is_private": bool(row["is_private"])})
 
 
 @bp.route("/api/room/privacy", methods=["POST"])
 def api_set_room_privacy() -> Any:
-    """Set room privacy settings."""
+    """Set room privacy settings (password is hashed before storage)."""
     if not request.is_json:
         return jsonify({"error": "invalid_payload"}), 400
     target_room = request.json.get("room")
@@ -504,26 +493,45 @@ def api_set_room_privacy() -> Any:
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
     conn = get_db()
-    migrate_db(conn)
     if is_private and not password:
         return jsonify({"error": "password_required"}), 400
+    hashed = generate_password_hash(password) if is_private and password else None
     conn.execute(
         """
         INSERT INTO room_settings (room, is_private, password_hash, created_at)
         VALUES (?, ?, ?, ?)
         ON CONFLICT(room) DO UPDATE SET is_private = ?, password_hash = ?
         """,
-        (target_room, 1 if is_private else 0, password if is_private else None, int(time.time()),
-         1 if is_private else 0, password if is_private else None),
+        (target_room, 1 if is_private else 0, hashed, int(time.time()),
+         1 if is_private else 0, hashed),
     )
     conn.commit()
     return jsonify({"status": "ok"})
 
 
+@bp.route("/api/room/verify-password", methods=["POST"])
+def api_verify_room_password() -> Any:
+    """Verify a password for a private room."""
+    if not request.is_json:
+        return jsonify({"error": "invalid_payload"}), 400
+    target_room = request.json.get("room")
+    password = request.json.get("password", "")
+    if not target_room:
+        return jsonify({"error": "missing_room"}), 400
+    conn = get_db()
+    row = conn.execute(
+        "SELECT password_hash FROM room_settings WHERE room = ? AND is_private = 1",
+        (target_room,),
+    ).fetchone()
+    if not row or not row["password_hash"]:
+        return jsonify({"authorized": False})
+    authorized = check_password_hash(row["password_hash"], password)
+    return jsonify({"authorized": authorized})
+
+
 def _start_refresh(room: str, user_agent: str) -> int:
     """Start a background refresh of all titles in a room."""
     with get_db_context() as conn:
-        migrate_db(conn)
         rows = conn.execute(
             "SELECT title_id, type_label FROM lists WHERE room = ?",
             (room,),
@@ -535,7 +543,6 @@ def _start_refresh(room: str, user_agent: str) -> int:
 
     def _run_refresh() -> None:
         with get_db_context() as conn:
-            migrate_db(conn)
             for title_id, type_label in items:
                 normalized_type = normalize_type_label(type_label)
                 if normalized_type not in ALLOWED_TYPE_LABELS:

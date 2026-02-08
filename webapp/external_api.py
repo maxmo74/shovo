@@ -12,9 +12,10 @@ try:
     from .database import (
         get_db_context,
         metadata_cache_get,
+        metadata_cache_get_no_ttl,
         metadata_cache_set,
-        migrate_db,
         rating_cache_get,
+        rating_cache_get_no_ttl,
         rating_cache_set,
     )
     from .models import SearchResult
@@ -22,9 +23,10 @@ except ImportError:
     from database import (
         get_db_context,
         metadata_cache_get,
+        metadata_cache_get_no_ttl,
         metadata_cache_set,
-        migrate_db,
         rating_cache_get,
+        rating_cache_get_no_ttl,
         rating_cache_set,
     )
     from models import SearchResult
@@ -146,10 +148,9 @@ def _fetch_metadata(
 def get_metadata(
     title_id: str, user_agent: str, normalized_type: str
 ) -> tuple[int | None, int | None, int | None, int | None, str | None]:
-    """Get metadata for a title, using cache if available."""
+    """Get metadata for a title, using cache if available (no TTL — metadata rarely changes)."""
     with get_db_context() as conn:
-        migrate_db(conn)
-        cached = metadata_cache_get(conn, title_id)
+        cached = metadata_cache_get_no_ttl(conn, title_id)
         if cached is not None:
             return cached
         try:
@@ -223,6 +224,15 @@ def parse_suggestion_item(
             original_language,
         ) = get_metadata(title_id, user_agent, normalized_type)
         rating, rotten_tomatoes = get_ratings(title_id, user_agent)
+    else:
+        # For search results: serve cached data without fetching from external APIs
+        with get_db_context() as conn:
+            cached_meta = metadata_cache_get_no_ttl(conn, title_id)
+            if cached_meta:
+                runtime_minutes, total_seasons, total_episodes, avg_episode_length, original_language = cached_meta
+            cached_rating = rating_cache_get_no_ttl(conn, title_id)
+            if cached_rating:
+                rating, rotten_tomatoes = cached_rating
     return SearchResult(
         title_id=title_id,
         title=item.get("l") or "Untitled",

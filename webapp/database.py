@@ -120,6 +120,20 @@ def migrate_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE metadata_cache ADD COLUMN avg_episode_length INTEGER")
     if "original_language" not in metadata_columns:
         conn.execute("ALTER TABLE metadata_cache ADD COLUMN original_language TEXT")
+    # Migration: clear plaintext passwords (pre-hashing era)
+    # Detect plaintext passwords: they won't start with recognized hash prefixes
+    plaintext_rows = conn.execute(
+        "SELECT room FROM room_settings WHERE password_hash IS NOT NULL AND password_hash != ''"
+    ).fetchall()
+    for row in plaintext_rows:
+        pwd = conn.execute(
+            "SELECT password_hash FROM room_settings WHERE room = ?", (row["room"],)
+        ).fetchone()["password_hash"]
+        if pwd and not pwd.startswith(("pbkdf2:", "scrypt:", "$2b$")):
+            conn.execute(
+                "UPDATE room_settings SET is_private = 0, password_hash = NULL WHERE room = ?",
+                (row["room"],),
+            )
 
 
 def _backfill_positions(conn: sqlite3.Connection, force: bool = False) -> None:
@@ -188,7 +202,7 @@ def rating_cache_set(
 def metadata_cache_get(
     conn: sqlite3.Connection, title_id: str
 ) -> tuple[int | None, int | None, int | None, int | None, str | None] | None:
-    """Get cached metadata for a title."""
+    """Get cached metadata for a title (with TTL)."""
     row = conn.execute(
         """
         SELECT runtime_minutes, total_seasons, total_episodes, avg_episode_length, original_language, cached_at
@@ -207,6 +221,41 @@ def metadata_cache_get(
         row["avg_episode_length"],
         row["original_language"],
     )
+
+
+def metadata_cache_get_no_ttl(
+    conn: sqlite3.Connection, title_id: str
+) -> tuple[int | None, int | None, int | None, int | None, str | None] | None:
+    """Get cached metadata ignoring TTL (metadata like runtime/language rarely changes)."""
+    row = conn.execute(
+        """
+        SELECT runtime_minutes, total_seasons, total_episodes, avg_episode_length, original_language
+        FROM metadata_cache WHERE title_id = ?
+        """,
+        (title_id,),
+    ).fetchone()
+    if not row:
+        return None
+    return (
+        row["runtime_minutes"],
+        row["total_seasons"],
+        row["total_episodes"],
+        row["avg_episode_length"],
+        row["original_language"],
+    )
+
+
+def rating_cache_get_no_ttl(
+    conn: sqlite3.Connection, title_id: str
+) -> tuple[str | None, str | None] | None:
+    """Get cached rating ignoring TTL (for search result display)."""
+    row = conn.execute(
+        "SELECT rating, rotten_tomatoes FROM rating_cache WHERE title_id = ?",
+        (title_id,),
+    ).fetchone()
+    if not row:
+        return None
+    return row["rating"], row["rotten_tomatoes"]
 
 
 def metadata_cache_set(

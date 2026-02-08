@@ -2,7 +2,7 @@
 
 ## An Experiment in AI-Developed Software
 
-Shovo is a watchlist and movie/TV tracking web app that serves as an experiment in **100% AI/LLM-developed software**. Every line of code, every CSS rule, every feature, and every bug fix is written by AI agents. The human role is limited to:
+Shovo is a watchlist and movie/TV tracking web app where **100% of the code is written by AI agents**. The human role is limited to:
 
 - Defining requirements and priorities
 - Deploying to production
@@ -11,44 +11,46 @@ Shovo is a watchlist and movie/TV tracking web app that serves as an experiment 
 
 This isn't AI-assisted development — it's AI-driven development with human oversight.
 
-## Core Values
+## What It Is
 
-### Simple
-No unnecessary complexity. Vanilla JavaScript instead of frameworks. SQLite instead of a database server. Flask instead of a heavyweight backend. Every dependency must justify its existence.
+A functional, early-stage watchlist app. It works, it's simple, and it's honest about what it does. You can search for movies and shows, add them to a list, track what you've watched, and share lists with others via URL-based rooms.
 
-### Powerful
-Despite its simplicity, Shovo delivers a full-featured experience: search, ratings from multiple sources, watchlist management, watched tracking, trending content, drag-to-reorder, and responsive mobile/desktop layouts.
+## What It Isn't
 
-### Free and Open Source
-Shovo is free to use and open source. No accounts required, no tracking, no ads. Your data stays in your room — a simple URL-based namespace that requires no authentication.
-
-### Community-Driven
-Features are driven by real user needs discovered through actual usage, not hypothetical requirements.
+- **Not production-hardened** — this is a personal project, not enterprise software
+- **Not modular everywhere** — `main.js` is 1300+ lines; the CSS is 2600+ lines. Both could use splitting
+- **Not fully tested** — no automated test suite beyond basic route tests
 
 ## Tech Stack
 
 - **Backend**: Python / Flask
 - **Frontend**: Vanilla JavaScript (ES modules), HTML, CSS
 - **Database**: SQLite
-- **APIs**: IMDb (suggestions + ratings), Rotten Tomatoes (ratings)
+- **APIs**: IMDb (search + ratings), OMDB (Rotten Tomatoes ratings)
 - **No build step**: No bundlers, transpilers, or preprocessors
 
-## LLM-Friendly Codebase
+This stack is right for the scope. A framework would add complexity without adding value here.
 
-The codebase is intentionally structured for AI readability:
+## Genuine Strengths
 
-- Clear, descriptive naming conventions
-- Modular file organization (separate JS modules for cards, modal, search, etc.)
-- Comprehensive operating guidelines in `CLAUDE.md`
-- Minimal abstraction layers — code does what it says
-- Comments where logic isn't self-evident, not everywhere
+- **No accounts needed** — room-based sharing via URLs is genuinely clever UX
+- **Simple deployment** — single SQLite file, no external database
+- **No build step** — edit and deploy, nothing to compile
+- **AI-developed** — every line written by AI, which is the interesting part
+
+## Known Limitations
+
+- Room privacy uses password hashing but the room model is URL-based — anyone who knows the room name can see it exists
+- Trending only works in production (IMDb blocks localhost)
+- No automated test coverage for the frontend
+- The codebase would benefit from splitting large files
 
 ## Development Model
 
-1. **Human identifies need** — "The search results need to be more compact"
+1. **Human identifies need** — "Search results should show cached ratings"
 2. **AI plans approach** — Analyzes codebase, proposes changes
 3. **AI implements** — Writes code, CSS, tests
-4. **AI verifies** — Visual testing, code analysis, regression checks
+4. **AI verifies** — Visual testing, code analysis
 5. **AI deploys** — Version bump, commit, push
 6. **Human validates** — Tests in production, provides feedback
 7. **Iterate** — Repeat as needed

@@ -27,6 +27,7 @@ import {
   getRefreshStatus,
   getRoomPrivacy,
   setRoomPrivacy,
+  verifyRoomPassword,
   MAX_RESULTS
 } from './api.js';
 import { buildCard, buildMobileSearchResult, buildDesktopSearchCard, applyCardDetails, needsDetails } from './cards.js';
@@ -414,12 +415,17 @@ const renderList = (items) => {
       showStatus(listResults, 'No matches in this list.');
       return;
     }
-    showStatus(
-      listResults,
-      activeTab === 'watched'
-        ? 'No watched items yet.'
-        : 'Your list is empty. Add something from the search results.'
-    );
+    if (activeTab === 'watched') {
+      showStatus(listResults, 'No watched items yet.');
+    } else {
+      listResults.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state-icon">🎬</span>
+          <p class="empty-state-text">Search for a movie or show to get started</p>
+          <span class="empty-state-arrow">↑</span>
+        </div>
+      `;
+    }
     return;
   }
   items.forEach((item) => {
@@ -853,7 +859,7 @@ const setActiveTab = (nextTab) => {
 };
 
 // Share token handling
-const applyShareToken = () => {
+const applyShareToken = async () => {
   const url = new URL(window.location.href);
   const token = url.searchParams.get('share');
   if (!token) return;
@@ -865,10 +871,17 @@ const applyShareToken = () => {
   }
   ensureRoomState(settings, room);
   if (payload.password) {
-    settings.rooms[room].private = true;
-    settings.rooms[room].password = payload.password;
-    settings.rooms[room].authorized = true;
-    saveSettings(settings);
+    // Verify the shared password against the server
+    try {
+      const result = await verifyRoomPassword(room, payload.password);
+      if (result.authorized) {
+        settings.rooms[room].private = true;
+        settings.rooms[room].authorized = true;
+        saveSettings(settings);
+      }
+    } catch (error) {
+      // Share token verification failed — user will need to enter password manually
+    }
   }
 };
 
@@ -879,19 +892,17 @@ const initializeSettings = async () => {
   if (!settings.defaultRoom) {
     settings.defaultRoom = room;
   }
-  // Fetch room privacy from server
+  // Fetch room privacy from server (password is never returned)
   try {
     const privacyData = await getRoomPrivacy(room);
     if (privacyData.is_private) {
       settings.rooms[room].private = true;
-      settings.rooms[room].password = privacyData.password;
       // If not authorized yet, mark as unauthorized
       if (!settings.rooms[room].authorized) {
         settings.rooms[room].authorized = false;
       }
     } else {
       settings.rooms[room].private = false;
-      settings.rooms[room].password = '';
       settings.rooms[room].authorized = true;
     }
   } catch (error) {
@@ -1138,15 +1149,24 @@ cardActionRemove?.addEventListener('click', async () => {
 });
 
 // Privacy handlers
-privacyUnlockButton?.addEventListener('click', () => {
+privacyUnlockButton?.addEventListener('click', async () => {
   if (!privacyPasswordInput) return;
   const attempt = privacyPasswordInput.value.trim();
-  if (attempt && attempt === getRoomPassword(settings, room)) {
-    settings.rooms[room].authorized = true;
-    saveSettings(settings);
-    closePrivacyModal();
-    loadList();
-  } else {
+  if (!attempt) {
+    privacyError?.removeAttribute('hidden');
+    return;
+  }
+  try {
+    const result = await verifyRoomPassword(room, attempt);
+    if (result.authorized) {
+      settings.rooms[room].authorized = true;
+      saveSettings(settings);
+      closePrivacyModal();
+      loadList();
+    } else {
+      privacyError?.removeAttribute('hidden');
+    }
+  } catch (error) {
     privacyError?.removeAttribute('hidden');
   }
 });
@@ -1292,7 +1312,7 @@ document.addEventListener('click', (event) => {
 // Initialize
 (async () => {
   await initializeSettings();
-  applyShareToken();
+  await applyShareToken();
   updateRoomVisibilityBadge();
   updateRoomCount();
   await loadList();
