@@ -35,10 +35,15 @@ IMDB_SUGGESTION_URL = "https://v3.sg.media-imdb.com/suggestion/{first}/{query}.j
 IMDB_TITLE_URL = "https://www.imdb.com/title/{title_id}/"
 IMDB_TRENDING_URL = "https://www.imdb.com/chart/moviemeter/"
 OMDB_URL = "https://www.omdbapi.com/"
+TMDB_TRENDING_URL = "https://api.themoviedb.org/3/trending/all/week"
+TMDB_EXTERNAL_IDS_URL = "https://api.themoviedb.org/3/{media_type}/{tmdb_id}/external_ids"
+TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w185"
 DEFAULT_USER_AGENT = "shovo-movielist/1.0 (+https://example.com)"
 MAX_RESULTS = 10
 ALLOWED_TYPE_LABELS = {"feature", "movie", "tvseries", "tvminiseries", "tvmovie"}
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "thewdb")
+TMDB_ACCESS_TOKEN = os.environ.get("TMDB_ACCESS_TOKEN")
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 DEFAULT_TRENDING_TITLE_IDS = tuple(
     title_id.strip()
     for title_id in os.environ.get(
@@ -296,6 +301,113 @@ def fetch_title_by_id(title_id: str, user_agent: str) -> SearchResult | None:
     return None
 
 
+def _tmdb_headers(user_agent: str) -> dict[str, str]:
+    """Build headers for TMDB API requests."""
+    headers = {"User-Agent": user_agent, "Accept": "application/json"}
+    if TMDB_ACCESS_TOKEN:
+        headers["Authorization"] = f"Bearer {TMDB_ACCESS_TOKEN}"
+    return headers
+
+
+def _tmdb_params() -> dict[str, str]:
+    """Build query parameters for TMDB API requests."""
+    return {"api_key": TMDB_API_KEY} if TMDB_API_KEY and not TMDB_ACCESS_TOKEN else {}
+
+
+def _tmdb_is_configured() -> bool:
+    """Return whether TMDB credentials are available."""
+    return bool(TMDB_ACCESS_TOKEN or TMDB_API_KEY)
+
+
+def _fetch_tmdb_imdb_id(tmdb_id: int, media_type: str, user_agent: str) -> str | None:
+    """Fetch the IMDB ID for a TMDB movie or TV result."""
+    if media_type not in {"movie", "tv"}:
+        return None
+    response = requests.get(
+        TMDB_EXTERNAL_IDS_URL.format(media_type=media_type, tmdb_id=tmdb_id),
+        headers=_tmdb_headers(user_agent),
+        params=_tmdb_params(),
+        timeout=10,
+    )
+    response.raise_for_status()
+    imdb_id = response.json().get("imdb_id")
+    return imdb_id if isinstance(imdb_id, str) and imdb_id.startswith("tt") else None
+
+
+def _parse_tmdb_year(item: dict[str, Any]) -> str | None:
+    """Extract a year from a TMDB movie or TV result."""
+    date_value = item.get("release_date") or item.get("first_air_date")
+    if isinstance(date_value, str) and len(date_value) >= 4:
+        return date_value[:4]
+    return None
+
+
+def _parse_tmdb_image(item: dict[str, Any]) -> str | None:
+    """Build a TMDB poster URL."""
+    poster_path = item.get("poster_path")
+    return f"{TMDB_IMAGE_BASE_URL}{poster_path}" if poster_path else None
+
+
+def _parse_tmdb_rating(item: dict[str, Any]) -> str | None:
+    """Parse TMDB vote average for display."""
+    rating = item.get("vote_average")
+    if not isinstance(rating, (int, float)) or rating <= 0:
+        return None
+    return f"{rating:.1f}"
+
+
+def _parse_tmdb_item(item: dict[str, Any], user_agent: str) -> SearchResult | None:
+    """Parse a TMDB trending item into a SearchResult."""
+    media_type = item.get("media_type")
+    if media_type not in {"movie", "tv"}:
+        return None
+    tmdb_id = item.get("id")
+    if not isinstance(tmdb_id, int):
+        return None
+    imdb_id = _fetch_tmdb_imdb_id(tmdb_id, media_type, user_agent)
+    if not imdb_id:
+        return None
+    title = item.get("title") or item.get("name") or "Untitled"
+    type_label = "movie" if media_type == "movie" else "tvseries"
+    return SearchResult(
+        title_id=imdb_id,
+        title=title,
+        year=_parse_tmdb_year(item),
+        original_language=item.get("original_language"),
+        type_label=type_label,
+        image=_parse_tmdb_image(item),
+        rating=_parse_tmdb_rating(item),
+        rotten_tomatoes=None,
+        runtime_minutes=None,
+        total_seasons=None,
+        total_episodes=None,
+        avg_episode_length=None,
+    )
+
+
+def fetch_tmdb_trending(user_agent: str) -> list[SearchResult]:
+    """Fetch real trending titles from TMDB."""
+    if not _tmdb_is_configured():
+        return []
+    response = requests.get(
+        TMDB_TRENDING_URL,
+        headers=_tmdb_headers(user_agent),
+        params={**_tmdb_params(), "language": "en-US"},
+        timeout=10,
+    )
+    response.raise_for_status()
+    results: list[SearchResult] = []
+    for item in response.json().get("results", []):
+        if item.get("adult"):
+            continue
+        parsed = _parse_tmdb_item(item, user_agent)
+        if parsed:
+            results.append(parsed)
+        if len(results) >= MAX_RESULTS:
+            break
+    return results
+
+
 def _titles_from_ids(title_ids: Iterable[str], user_agent: str) -> list[SearchResult]:
     """Fetch title summaries for a list of IMDB IDs."""
     seen: set[str] = set()
@@ -313,7 +425,11 @@ def _titles_from_ids(title_ids: Iterable[str], user_agent: str) -> list[SearchRe
 
 
 def fetch_trending(user_agent: str) -> list[SearchResult]:
-    """Fetch trending titles from IMDB, with a fallback if IMDB blocks chart scraping."""
+    """Fetch real trending titles, preferring TMDB and falling back to IMDB/static IDs."""
+    tmdb_results = fetch_tmdb_trending(user_agent)
+    if tmdb_results:
+        return tmdb_results
+
     headers = {"User-Agent": user_agent}
     response = requests.get(IMDB_TRENDING_URL, headers=headers, timeout=10)
     response.raise_for_status()

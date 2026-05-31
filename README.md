@@ -8,7 +8,7 @@ uses IMDB search results (including thumbnails) and fetches IMDB ratings.
 - Shared watchlists by room URL
 - Watchlist and watched tabs
 - IMDB search suggestions, thumbnails, ratings, and title metadata
-- Trending-title discovery
+- TMDB-backed trending-title discovery with fallback
 - Drag/reorder and mobile swipe actions
 - Optional room privacy UI with hashed stored passwords
 - Progressive-web-app assets and service worker

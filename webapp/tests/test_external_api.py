@@ -1,7 +1,7 @@
 """Tests for external API functions."""
 from __future__ import annotations
 
-from webapp.external_api import fetch_trending, normalize_type_label, shrink_image_url
+from webapp.external_api import fetch_tmdb_trending, fetch_trending, normalize_type_label, shrink_image_url
 from webapp.models import SearchResult
 
 
@@ -38,6 +38,77 @@ class TestNormalizeTypeLabel:
         assert normalize_type_label("tv_movie") == "tvmovie"
 
 
+class TestFetchTmdbTrending:
+    """Tests for TMDB trending title fetching."""
+
+    def test_fetch_tmdb_trending_maps_results_to_imdb_ids(self, monkeypatch):
+        """TMDB trending results are converted to SearchResult items with IMDB IDs."""
+
+        class Response:
+            def __init__(self, payload):
+                self._payload = payload
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return self._payload
+
+        def fake_get(url, **kwargs):
+            if "trending" in url:
+                return Response(
+                    {
+                        "results": [
+                            {
+                                "adult": False,
+                                "id": 100,
+                                "media_type": "movie",
+                                "title": "Trending Movie",
+                                "release_date": "2026-05-31",
+                                "original_language": "en",
+                                "poster_path": "/poster.jpg",
+                                "vote_average": 7.75,
+                            },
+                            {
+                                "adult": False,
+                                "id": 200,
+                                "media_type": "tv",
+                                "name": "Trending Show",
+                                "first_air_date": "2026-05-30",
+                                "original_language": "fr",
+                                "poster_path": None,
+                                "vote_average": 8,
+                            },
+                        ]
+                    }
+                )
+            if "/movie/100/" in url:
+                return Response({"imdb_id": "tt1000000"})
+            if "/tv/200/" in url:
+                return Response({"imdb_id": "tt2000000"})
+            raise AssertionError(f"Unexpected URL: {url}")
+
+        monkeypatch.setattr("webapp.external_api.TMDB_ACCESS_TOKEN", "token")
+        monkeypatch.setattr("webapp.external_api.TMDB_API_KEY", None)
+        monkeypatch.setattr("webapp.external_api.requests.get", fake_get)
+
+        results = fetch_tmdb_trending("test-agent")
+
+        assert [result.title_id for result in results] == ["tt1000000", "tt2000000"]
+        assert [result.title for result in results] == ["Trending Movie", "Trending Show"]
+        assert [result.type_label for result in results] == ["movie", "tvseries"]
+        assert results[0].year == "2026"
+        assert results[0].image == "https://image.tmdb.org/t/p/w185/poster.jpg"
+        assert results[0].rating == "7.8"
+
+    def test_fetch_tmdb_trending_returns_empty_without_credentials(self, monkeypatch):
+        """TMDB is skipped when no credentials are configured."""
+        monkeypatch.setattr("webapp.external_api.TMDB_ACCESS_TOKEN", None)
+        monkeypatch.setattr("webapp.external_api.TMDB_API_KEY", None)
+
+        assert fetch_tmdb_trending("test-agent") == []
+
+
 class TestFetchTrending:
     """Tests for trending title fetching."""
 
@@ -69,6 +140,7 @@ class TestFetchTrending:
                 avg_episode_length=None,
             )
 
+        monkeypatch.setattr("webapp.external_api.fetch_tmdb_trending", lambda user_agent: [])
         monkeypatch.setattr("webapp.external_api.requests.get", fake_get)
         monkeypatch.setattr("webapp.external_api.fetch_title_by_id", fake_fetch_title_by_id)
         monkeypatch.setattr("webapp.external_api.DEFAULT_TRENDING_TITLE_IDS", ("tt0000001", "tt0000002"))
@@ -105,6 +177,7 @@ class TestFetchTrending:
                 avg_episode_length=None,
             )
 
+        monkeypatch.setattr("webapp.external_api.fetch_tmdb_trending", lambda user_agent: [])
         monkeypatch.setattr("webapp.external_api.requests.get", fake_get)
         monkeypatch.setattr("webapp.external_api.fetch_title_by_id", fake_fetch_title_by_id)
         monkeypatch.setattr("webapp.external_api.DEFAULT_TRENDING_TITLE_IDS", ("tt0000001",))

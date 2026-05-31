@@ -50,9 +50,13 @@ Create `/etc/shovo.env` with the following contents:
 
 ```bash
 OMDB_API_KEY=your_real_key
+TMDB_ACCESS_TOKEN=your_tmdb_read_access_token
+TMDB_API_KEY=your_optional_tmdb_v3_api_key
 SHOVO_SECRET_KEY=replace_with_a_long_random_secret
 SHOVO_COOKIE_SECURE=1
 ```
+
+`TMDB_ACCESS_TOKEN` is preferred for real trending results. `OMDB_API_KEY` is still used for optional IMDb/Rotten Tomatoes rating enrichment.
 
 Generate `SHOVO_SECRET_KEY` with a command such as `openssl rand -hex 32`.
 It signs Flask session cookies used for private-room authorization, so keep it stable
