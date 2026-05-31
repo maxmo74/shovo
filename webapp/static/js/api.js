@@ -8,10 +8,12 @@ import {
   getListCacheKey,
   getDetailCacheKey,
   getSearchCacheKey,
-  invalidateListCache
+  invalidateListCache,
+  removeCached
 } from './cache.js';
 
 const MAX_RESULTS = 10;
+const TRENDING_CACHE_KEY = 'trending_v2';
 
 /**
  * Search for titles
@@ -48,9 +50,12 @@ export async function searchTitles(query, signal) {
  * @returns {Promise<object>} - Trending results
  */
 export async function getTrending() {
+  // Drop pre-fallback cache entries that may contain an empty result set.
+  removeCached('trending');
+
   // Check cache first
-  const cached = getCached('trending');
-  if (cached) {
+  const cached = getCached(TRENDING_CACHE_KEY);
+  if (cached && Array.isArray(cached.results) && cached.results.length > 0) {
     return cached;
   }
 
@@ -60,8 +65,10 @@ export async function getTrending() {
   }
   const data = await response.json();
 
-  // Cache the results
-  setCached('trending', data);
+  // Cache only non-empty results so transient upstream failures don't stick in the UI.
+  if (Array.isArray(data.results) && data.results.length > 0) {
+    setCached(TRENDING_CACHE_KEY, data);
+  }
 
   return data;
 }
