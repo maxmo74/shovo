@@ -2,14 +2,43 @@
  * Modal management module for Shovo
  */
 
+const focusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])'
+].join(',');
+
+let lastActiveElement = null;
+
+function getFocusableElements(modal) {
+  return Array.from(modal.querySelectorAll(focusableSelector))
+    .filter((element) => element.offsetParent !== null || element === document.activeElement);
+}
+
+function focusModal(modal) {
+  const focusable = getFocusableElements(modal);
+  const target = focusable[0] || modal;
+  if (!modal.hasAttribute('tabindex')) {
+    modal.setAttribute('tabindex', '-1');
+  }
+  requestAnimationFrame(() => target.focus({ preventScroll: true }));
+}
+
 /**
  * Open a modal
  * @param {HTMLElement} modal - Modal element
  */
 export function openModal(modal) {
   if (!modal) return;
+  lastActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : lastActiveElement;
   modal.classList.add('is-visible');
   modal.setAttribute('aria-hidden', 'false');
+  if (modal.getAttribute('role') === 'dialog') {
+    focusModal(modal);
+  }
 }
 
 /**
@@ -20,6 +49,9 @@ export function closeModal(modal) {
   if (!modal) return;
   modal.classList.remove('is-visible');
   modal.setAttribute('aria-hidden', 'true');
+  if (modal.getAttribute('role') === 'dialog' && lastActiveElement?.isConnected) {
+    lastActiveElement.focus({ preventScroll: true });
+  }
 }
 
 /**
@@ -80,6 +112,27 @@ export function createModalHandlers(modal, closeButton) {
  */
 export function setupEscapeHandler(modals, handlers) {
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Tab') {
+      const openDialog = Object.values(modals).find((modal) => modal?.getAttribute('role') === 'dialog' && isModalOpen(modal));
+      if (!openDialog) return;
+      const focusable = getFocusableElements(openDialog);
+      if (!focusable.length) {
+        event.preventDefault();
+        openDialog.focus({ preventScroll: true });
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+      return;
+    }
+
     if (event.key !== 'Escape') return;
 
     for (const [name, modal] of Object.entries(modals)) {

@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#050a18" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -68,15 +68,16 @@
           </div>
           <div class="search-row inline-search search-container">
             <div class="input-with-clear">
-              <input id="filter-input" type="search" placeholder="Filter current list" />
+              <input id="filter-input" type="search" placeholder="Filter list" aria-label="Filter current list" />
               <button class="input-clear" id="filter-clear" type="button" aria-label="Clear filter">×</button>
             </div>
             <div class="input-with-clear">
               <input id="search-input" type="search" name="search-query" placeholder="Search for a title" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Search for movies and shows" role="searchbox" />
               <button class="input-clear" id="search-clear" type="button" aria-label="Clear search">×</button>
             </div>
-            <button id="trending-button" class="icon-button trending-button" type="button" aria-label="Trending">
-              🔥
+            <button id="trending-button" class="icon-button trending-button" type="button" aria-label="Show trending titles" title="Show trending titles">
+              <span aria-hidden="true">🔥</span>
+              <span class="trending-label">Trending</span>
             </button>
             <div id="search-modal" class="search-popover" aria-hidden="true">
               <div id="search-results" class="results-grid" aria-live="polite"></div>
@@ -237,6 +238,7 @@
             <p>Version: <strong>Shovo v{{ app_version }}</strong></p>
             <p>Author: <strong>Massimo Santoro</strong></p>
             <p>Copyright © 2025-2026 Massimo Santoro</p>
+            <p class="about-attribution">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
           </div>
           <div class="about-links">
             <a class="gpl-link" href="/static/gpl-3.0.txt" target="_blank" rel="noopener noreferrer">
@@ -420,10 +422,23 @@
       // Automatic Update System - No user interaction required
       // This ensures clients always have the latest code without manual refresh
       
-      // Function to automatically refresh the page when an update is detected
+      // Function to offer a safe refresh when an update is detected
       function autoRefreshForUpdate() {
-        console.log('[Update] Automatic refresh triggered - reloading page');
-        window.location.reload();
+        console.log('[Update] New version available - showing refresh prompt');
+        if (document.getElementById('update-notification')) return;
+        const banner = document.createElement('div');
+        banner.id = 'update-notification';
+        banner.className = 'update-notification';
+        banner.innerHTML = `
+          <div class="update-notification-content">
+            <span class="update-notification-text">A new Shovo version is available.</span>
+            <button class="update-notification-button" type="button">Refresh</button>
+            <button class="update-notification-dismiss" type="button" aria-label="Dismiss update notice">×</button>
+          </div>
+        `;
+        banner.querySelector('.update-notification-button').addEventListener('click', () => window.location.reload());
+        banner.querySelector('.update-notification-dismiss').addEventListener('click', () => banner.remove());
+        document.body.prepend(banner);
       }
 
       // Service Worker Update Management with automatic refresh
@@ -475,11 +490,11 @@
           });
       }
       
-      // Fallback: Auto-refresh if page has been open for more than 4 hours
-      // This ensures even clients without service workers get updates
+      // Fallback: ask for refresh if page has been open for more than 4 hours.
+      // Avoid forced reloads that can interrupt searching, sharing, or editing.
       setTimeout(() => {
-        console.log('[Update] Page has been open for 4+ hours - auto-refreshing for updates');
-        window.location.reload();
+        console.log('[Update] Page has been open for 4+ hours - prompting for refresh');
+        autoRefreshForUpdate();
       }, 14400000); // 4 hours in milliseconds
 
       // Update notification functions removed - using auto-refresh instead

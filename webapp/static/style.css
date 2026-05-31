@@ -234,20 +234,7 @@ header h1 {
   align-items: stretch;
 }
 
-/* Hide filter input on desktop - users can search instead */
-#filter-input,
-#filter-clear {
-  display: none;
-}
-
-/* Also hide the filter input container so it doesn't take flex space */
-#filter-input:not(:placeholder-shown) ~ #filter-clear {
-  display: inline-block;
-}
-
-.input-with-clear:has(#filter-input) {
-  display: none;
-}
+/* Filter stays visible on larger screens so users can distinguish list filtering from title search. */
 
 .header-actions {
   display: flex;
@@ -1224,10 +1211,20 @@ button.ghost {
   background: rgba(251, 191, 36, 0.15);
   border: 1px solid rgba(251, 191, 36, 0.35);
   color: #fcd34d;
-  width: var(--control-size);
-  height: var(--control-size);
-  padding: 0;
+  width: auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 0.75rem;
   font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.trending-label {
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .trending-button:hover,
@@ -2737,5 +2734,77 @@ body:has(.update-notification[style*="display: flex"]) main {
 
   body:has(.update-notification[style*="display: flex"]) main {
     padding-top: calc(1.5rem + 3rem);
+  }
+}
+
+/* UX/accessibility hardening */
+:where(button, input, select, textarea, a, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.status-card {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--surface-border);
+  background: rgba(10, 16, 34, 0.76);
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.status-card--loading {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.12);
+}
+
+.status-card--empty {
+  color: var(--text-muted);
+}
+
+.status-card--warning {
+  border-color: rgba(168, 85, 247, 0.5);
+  background: rgba(168, 85, 247, 0.14);
+}
+
+.status-card--error {
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
+}
+
+.about-attribution {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 768px) {
+  .trending-label {
+    display: none;
+  }
+
+  .trending-button,
+  body.is-mobile .icon-button,
+  body.is-mobile .menu summary,
+  .menu summary {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .input-with-clear:has(#filter-input) {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .trending-button,
+  .menu summary {
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
   }
 }

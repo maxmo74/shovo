@@ -140,8 +140,8 @@ let currentListItems = [];
 let settings = loadSettings();
 
 // Helper functions
-const showStatus = (container, message) => {
-  container.innerHTML = `<p class="card-meta">${message}</p>`;
+const showStatus = (container, message, type = 'info') => {
+  container.innerHTML = `<div class="status-card status-card--${type}" role="status">${message}</div>`;
 };
 
 const updateRoomVisibilityBadge = () => {
@@ -450,11 +450,11 @@ const renderList = (items) => {
   if (!items.length) {
     const hasFilter = filterInput?.value.trim();
     if (hasFilter && currentListItems.length) {
-      showStatus(listResults, 'No matches in this list.');
+      showStatus(listResults, 'No matches in this list.', 'empty');
       return;
     }
     if (activeTab === 'watched') {
-      showStatus(listResults, 'No watched items yet.');
+      showStatus(listResults, 'No watched items yet.', 'empty');
     } else {
       listResults.innerHTML = `
         <div class="empty-state">
@@ -538,11 +538,11 @@ const fetchSearch = async () => {
       renderSearchResults(cached);
     } else {
       openSearchModal();
-      showStatus(searchResults, 'Searching...');
+      showStatus(searchResults, 'Searching…', 'loading');
     }
   } else {
     openSearchModal();
-    showStatus(searchResults, 'Searching...');
+    showStatus(searchResults, 'Searching…', 'loading');
   }
   if (activeSearchController) {
     activeSearchController.abort();
@@ -554,14 +554,14 @@ const fetchSearch = async () => {
     lastSearchResults = data.results || [];
     if (!lastSearchResults.length) {
       openSearchModal();
-      showStatus(searchResults, 'No matches found.');
+      showStatus(searchResults, 'No matches found.', 'empty');
       return;
     }
     renderSearchResults(lastSearchResults);
   } catch (error) {
     if (error.name !== 'AbortError') {
       openSearchModal();
-      showStatus(searchResults, 'Search failed. Try again later.');
+      showStatus(searchResults, 'Search failed. Try again later.', 'error');
     }
   }
 };
@@ -582,11 +582,11 @@ const debounceSearch = () => {
 
 const loadList = async () => {
   if (isRoomPrivate(settings, room) && !isRoomAuthorized(settings, room)) {
-    showStatus(listResults, 'This list is private. Enter the password to continue.');
+    showStatus(listResults, 'This list is private. Enter the password to continue.', 'warning');
     openPrivacyModal();
     return;
   }
-  showStatus(listResults, 'Loading list...');
+  showStatus(listResults, 'Loading list…', 'loading');
   const page = pageState[activeTab];
   try {
     const data = await getList(room, activeTab, page, PAGE_SIZE);
@@ -618,7 +618,7 @@ const loadList = async () => {
     preloadTabImages(activeTab === 'watched' ? 'unwatched' : 'watched');
     pollRefreshStatus();
   } catch (error) {
-    showStatus(listResults, 'Unable to load list.');
+    showStatus(listResults, 'Unable to load list.', 'error');
   }
 };
 
@@ -641,16 +641,16 @@ const preloadTabImages = async (tab) => {
 const fetchTrending = async () => {
   if (!trendingResults) return;
   openTrendingPopover();
-  showStatus(trendingResults, 'Loading trending titles...');
+  showStatus(trendingResults, 'Loading trending titles…', 'loading');
   try {
     const data = await getTrending();
     if (!data.results || !data.results.length) {
-      showStatus(trendingResults, 'No trending titles found.');
+      showStatus(trendingResults, 'No trending titles found.', 'empty');
       return;
     }
     renderTrendingResults(data.results);
   } catch (error) {
-    showStatus(trendingResults, 'Unable to load trending titles.');
+    showStatus(trendingResults, 'Unable to load trending titles.', 'error');
   }
 };
 
