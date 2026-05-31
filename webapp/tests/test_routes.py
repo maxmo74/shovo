@@ -32,6 +32,35 @@ class TestRoomRoute:
         assert b"testroom" in response.data
 
 
+class TestSecurityAPI:
+    """Tests for API security controls."""
+
+    def test_mutating_api_rejects_bad_csrf_token(self, client):
+        """Mutating API calls require the session CSRF token."""
+        response = client.post(
+            "/api/list",
+            json={"room": "testroom", "title_id": "tt1234567", "title": "Test Movie"},
+            headers={"X-CSRF-Token": "bad-token"},
+        )
+        assert response.status_code == 403
+        assert json.loads(response.data)["error"] == "csrf_failed"
+
+    def test_password_verify_is_rate_limited(self, client):
+        """Repeated password verification attempts are rate-limited."""
+        for _ in range(10):
+            response = client.post(
+                "/api/room/verify-password",
+                json={"room": "missingroom", "password": "wrong"},
+            )
+            assert response.status_code == 200
+        response = client.post(
+            "/api/room/verify-password",
+            json={"room": "missingroom", "password": "wrong"},
+        )
+        assert response.status_code == 429
+        assert json.loads(response.data)["error"] == "rate_limited"
+
+
 class TestListAPI:
     """Tests for list API endpoints."""
 

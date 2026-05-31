@@ -5,6 +5,24 @@ import os
 import tempfile
 
 import pytest
+from flask.testing import FlaskClient
+
+
+class ShovoTestClient(FlaskClient):
+    """Test client that supplies CSRF headers for mutating API requests."""
+
+    def open(self, *args, **kwargs):
+        method = kwargs.get("method")
+        if method is None and len(args) >= 2:
+            method = args[1]
+        method = (method or "GET").upper()
+        path = args[0] if args else kwargs.get("path", "")
+        if method in {"POST", "PATCH", "DELETE"} and str(path).startswith("/api/"):
+            with self.session_transaction() as session:
+                token = session.setdefault("csrf_token", "test-csrf-token")
+            headers = kwargs.setdefault("headers", {})
+            headers.setdefault("X-CSRF-Token", token)
+        return super().open(*args, **kwargs)
 
 @pytest.fixture
 def app():
@@ -23,13 +41,17 @@ def app():
     from webapp import create_app
 
     app = create_app()
+    app.test_client_class = ShovoTestClient
     app.config.update(
         {
             "TESTING": True,
         }
     )
 
-    # Initialize test database
+    # Initialize test database and reset process-local security buckets
+    from webapp import routes
+    routes._rate_limit_buckets.clear()
+
     with app.app_context():
         database.init_db()
 

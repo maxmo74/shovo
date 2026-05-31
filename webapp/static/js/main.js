@@ -37,6 +37,11 @@ import { getCached, setCached, getDetailCacheKey } from './cache.js';
 
 // DOM Elements
 const room = window.APP_ROOM;
+const csrfToken = window.CSRF_TOKEN || '';
+const jsonHeaders = () => ({
+  'Content-Type': 'application/json',
+  'X-CSRF-Token': csrfToken
+});
 const searchInput = document.getElementById('search-input');
 const filterInput = document.getElementById('filter-input');
 const searchResults = document.getElementById('search-results');
@@ -51,6 +56,7 @@ const countWatched = document.getElementById('count-watched');
 const cardTemplate = document.getElementById('result-card-template');
 const desktopSearchTemplate = document.getElementById('desktop-search-card-template');
 const trendingButton = document.getElementById('trending-button');
+const toastRegion = document.getElementById('toast-region');
 const refreshDatabaseButton = document.getElementById('refresh-database');
 const menu = document.querySelector('.menu');
 const roomTagButton = document.getElementById('room-tag-button');
@@ -142,6 +148,47 @@ let settings = loadSettings();
 // Helper functions
 const showStatus = (container, message, type = 'info') => {
   container.innerHTML = `<div class="status-card status-card--${type}" role="status">${message}</div>`;
+};
+
+const showToast = (message, actionLabel, onAction) => {
+  if (!toastRegion) return;
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  const text = document.createElement('span');
+  text.textContent = message;
+  toast.appendChild(text);
+  let dismissed = false;
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    toast.remove();
+  };
+  if (actionLabel && onAction) {
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'toast-action';
+    action.textContent = actionLabel;
+    action.addEventListener('click', async () => {
+      action.disabled = true;
+      try {
+        await onAction();
+      } finally {
+        dismiss();
+      }
+    });
+    toast.appendChild(action);
+  }
+  toastRegion.appendChild(toast);
+  setTimeout(dismiss, 6000);
+};
+
+const removeItemWithUndo = async (item) => {
+  await apiRemoveFromList(room, item.title_id);
+  await loadList();
+  showToast('Removed from list.', 'Undo', async () => {
+    await apiAddToList(room, item, Boolean(item.watched));
+    await loadList();
+  });
 };
 
 const updateRoomVisibilityBadge = () => {
@@ -323,8 +370,7 @@ const cardHandlers = {
   },
   onRemove: async (item) => {
     try {
-      await apiRemoveFromList(room, item.title_id);
-      await loadList();
+      await removeItemWithUndo(item);
     } catch (error) {
       showError('Failed to remove item. Please try again.');
     }
@@ -754,7 +800,7 @@ const renderVisitedRooms = () => {
       try {
         const response = await fetch('/api/list/rename', {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders(),
           body: JSON.stringify({ room: roomId, next_room: sanitized })
         });
         const result = await response.json();
@@ -819,7 +865,7 @@ const renderVisitedRooms = () => {
       try {
         const response = await fetch('/api/list/delete-room', {
           method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
+          headers: jsonHeaders(),
           body: JSON.stringify({ room: roomId })
         });
         if (!response.ok) {
@@ -1405,8 +1451,7 @@ setupMobileEnhancements(loadList, {
       // Find the item in the current list
       const item = currentListItems.find(item => item.title_id === titleId);
       if (item) {
-        await apiRemoveFromList(room, titleId);
-        await loadList();
+        await removeItemWithUndo(item);
       }
     } catch (error) {
       showError('Failed to remove item. Please try again.');

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 import threading
 import time
 from typing import Any
@@ -50,9 +51,10 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.71"
+APP_VERSION = "1.6.72"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
+CSRF_HEADER = "X-CSRF-Token"
 
 bp = Blueprint("main", __name__)
 
@@ -60,6 +62,82 @@ _refresh_lock = threading.Lock()
 _refresh_state: dict[str, dict[str, int | bool]] = {}
 _trending_lock = threading.Lock()
 _trending_cache: dict[str, Any] = {"data": [], "fetched_at": 0, "refreshing": False}
+_rate_limit_lock = threading.Lock()
+_rate_limit_buckets: dict[tuple[str, str], list[float]] = {}
+
+
+def _csrf_token() -> str:
+    """Return the session CSRF token, creating it if needed."""
+    token = session.get("csrf_token")
+    if not isinstance(token, str) or not token:
+        token = secrets.token_urlsafe(32)
+        session["csrf_token"] = token
+    return token
+
+
+def _request_ip() -> str:
+    """Return the best available client IP for lightweight rate limits."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def _rate_limit_key() -> str:
+    """Group requests by endpoint purpose."""
+    if request.path == "/api/room/verify-password":
+        return "verify-password"
+    if request.path == "/api/search":
+        return "search"
+    if request.path == "/api/trending":
+        return "trending"
+    if request.path.startswith("/api/") and request.method in {"POST", "PATCH", "DELETE"}:
+        return "mutating"
+    return ""
+
+
+def _rate_limit_allowed(bucket: str) -> tuple[bool, int]:
+    """Apply a small in-memory sliding-window rate limit."""
+    limits = {
+        "verify-password": (10, 60),
+        "search": (40, 60),
+        "trending": (30, 60),
+        "mutating": (80, 60),
+    }
+    limit = limits.get(bucket)
+    if not limit:
+        return True, 0
+    max_requests, window = limit
+    now = time.time()
+    key = (_request_ip(), bucket)
+    with _rate_limit_lock:
+        entries = [stamp for stamp in _rate_limit_buckets.get(key, []) if now - stamp < window]
+        if len(entries) >= max_requests:
+            retry_after = max(1, int(window - (now - entries[0])))
+            _rate_limit_buckets[key] = entries
+            return False, retry_after
+        entries.append(now)
+        _rate_limit_buckets[key] = entries
+    return True, 0
+
+
+@bp.before_request
+def _protect_api_requests() -> Any:
+    """Apply rate limiting and CSRF protection to API requests."""
+    bucket = _rate_limit_key()
+    if bucket:
+        allowed, retry_after = _rate_limit_allowed(bucket)
+        if not allowed:
+            response = jsonify({"error": "rate_limited"})
+            response.status_code = 429
+            response.headers["Retry-After"] = str(retry_after)
+            return response
+
+    if request.path.startswith("/api/") and request.method in {"POST", "PATCH", "DELETE"}:
+        token = request.headers.get(CSRF_HEADER, "")
+        if not token or not secrets.compare_digest(token, _csrf_token()):
+            return jsonify({"error": "csrf_failed"}), 403
+    return None
 
 
 def _authorized_rooms() -> set[str]:
@@ -120,7 +198,7 @@ def room(room: str) -> Any:
             return redirect(f"/r/{default_room_value}")
         return redirect(f"/r/{default_room()}")
     _ensure_trending_preload(request_user_agent())
-    return render_template("index.html", room=room, app_version=APP_VERSION)
+    return render_template("index.html", room=room, app_version=APP_VERSION, csrf_token=_csrf_token())
 
 
 @bp.route("/static/sw.js")

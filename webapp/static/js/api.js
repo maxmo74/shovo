@@ -14,6 +14,14 @@ import {
 
 const MAX_RESULTS = 10;
 const TRENDING_CACHE_KEY = 'trending_v3';
+const CSRF_TOKEN = window.CSRF_TOKEN || '';
+
+function jsonHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': CSRF_TOKEN
+  };
+}
 
 /**
  * Search for titles
@@ -142,7 +150,7 @@ export async function getDetails(titleId, typeLabel) {
 export async function addToList(room, item, watched = false) {
   const response = await fetch('/api/list', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ ...item, room, watched })
   });
   if (!response.ok) {
@@ -165,7 +173,7 @@ export async function addToList(room, item, watched = false) {
 export async function updateWatched(room, titleId, watched) {
   const response = await fetch('/api/list', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ title_id: titleId, room, watched: watched ? 1 : 0 })
   });
   if (!response.ok) {
@@ -187,7 +195,7 @@ export async function updateWatched(room, titleId, watched) {
 export async function removeFromList(room, titleId) {
   const response = await fetch('/api/list', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ title_id: titleId, room })
   });
   if (!response.ok) {
@@ -209,7 +217,7 @@ export async function removeFromList(room, titleId) {
 export async function updateOrder(room, order) {
   const response = await fetch('/api/list/order', {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ room, order })
   });
   if (!response.ok) {
@@ -230,7 +238,7 @@ export async function updateOrder(room, order) {
 export async function startRefresh(room) {
   const response = await fetch('/api/refresh', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ room })
   });
   if (!response.ok) {
@@ -282,7 +290,7 @@ export async function getRoomPrivacy(room) {
 export async function setRoomPrivacy(room, isPrivate, password) {
   const response = await fetch('/api/room/privacy', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ room, is_private: isPrivate, password })
   });
   if (!response.ok) {
@@ -300,7 +308,7 @@ export async function setRoomPrivacy(room, isPrivate, password) {
 export async function verifyRoomPassword(room, password) {
   const response = await fetch('/api/room/verify-password', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: jsonHeaders(),
     body: JSON.stringify({ room, password })
   });
   if (!response.ok) {
