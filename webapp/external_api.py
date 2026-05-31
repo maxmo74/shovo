@@ -75,25 +75,26 @@ def shrink_image_url(url: str | None) -> str | None:
     )
 
 
-def _fetch_rotten_tomatoes(title_id: str, user_agent: str) -> str | None:
-    """Fetch Rotten Tomatoes rating from OMDB API."""
-    if not OMDB_API_KEY:
-        return None
-    response = requests.get(
-        OMDB_URL,
-        params={"i": title_id, "apikey": OMDB_API_KEY},
-        headers={"User-Agent": user_agent},
-        timeout=10,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    if payload.get("Response") != "True":
-        return None
+def _parse_omdb_ratings(payload: dict[str, Any]) -> tuple[str | None, str | None]:
+    """Parse IMDB and Rotten Tomatoes ratings from an OMDB payload."""
+    imdb_rating = payload.get("imdbRating")
+    if not imdb_rating or imdb_rating == "N/A":
+        imdb_rating = None
+    rotten_rating = None
     ratings = payload.get("Ratings") or []
     for rating in ratings:
         if rating.get("Source") == "Rotten Tomatoes":
-            return rating.get("Value")
-    return None
+            rotten_rating = rating.get("Value")
+            break
+    return imdb_rating, rotten_rating
+
+
+def _fetch_rotten_tomatoes(title_id: str, user_agent: str) -> str | None:
+    """Fetch Rotten Tomatoes rating from OMDB API."""
+    payload = _fetch_omdb_title(title_id, user_agent)
+    if not payload:
+        return None
+    return _parse_omdb_ratings(payload)[1]
 
 
 def _fetch_omdb_title(title_id: str, user_agent: str, season: int | None = None) -> dict[str, Any]:
@@ -176,25 +177,28 @@ def get_metadata(
 
 
 def _fetch_ratings(title_id: str, user_agent: str) -> tuple[str | None, str | None]:
-    """Fetch IMDB and Rotten Tomatoes ratings."""
+    """Fetch IMDB and Rotten Tomatoes ratings, preferring OMDB over brittle IMDB scraping."""
+    try:
+        payload = _fetch_omdb_title(title_id, user_agent)
+        if payload:
+            imdb_rating, rotten_rating = _parse_omdb_ratings(payload)
+            if imdb_rating or rotten_rating:
+                return imdb_rating, rotten_rating
+    except requests.RequestException:
+        pass
+
     headers = {"User-Agent": user_agent}
     response = requests.get(IMDB_TITLE_URL.format(title_id=title_id), headers=headers, timeout=10)
     response.raise_for_status()
     match = re.search(r'<script type="application/ld\+json">(.*?)</script>', response.text, re.S)
     if not match:
-        imdb_rating = None
-    else:
-        try:
-            data = json.loads(match.group(1))
-        except json.JSONDecodeError:
-            data = {}
-        imdb_rating = data.get("aggregateRating", {}).get("ratingValue")
-        imdb_rating = str(imdb_rating) if imdb_rating is not None else None
+        return None, None
     try:
-        rotten_rating = _fetch_rotten_tomatoes(title_id, user_agent)
-    except requests.RequestException:
-        rotten_rating = None
-    return imdb_rating, rotten_rating
+        data = json.loads(match.group(1))
+    except json.JSONDecodeError:
+        data = {}
+    imdb_rating = data.get("aggregateRating", {}).get("ratingValue")
+    return str(imdb_rating) if imdb_rating is not None else None, None
 
 
 def get_ratings(title_id: str, user_agent: str) -> tuple[str | None, str | None]:

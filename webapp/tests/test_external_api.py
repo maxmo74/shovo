@@ -1,7 +1,7 @@
 """Tests for external API functions."""
 from __future__ import annotations
 
-from webapp.external_api import fetch_tmdb_trending, fetch_trending, normalize_type_label, shrink_image_url
+from webapp.external_api import fetch_tmdb_trending, fetch_trending, normalize_type_label, shrink_image_url, _fetch_ratings
 from webapp.models import SearchResult
 
 
@@ -36,6 +36,31 @@ class TestNormalizeTypeLabel:
         """Test normalization removes non-alphabetic characters."""
         assert normalize_type_label("tv-series") == "tvseries"
         assert normalize_type_label("tv_movie") == "tvmovie"
+
+
+class TestFetchRatings:
+    """Tests for rating fetching."""
+
+    def test_fetch_ratings_prefers_omdb(self, monkeypatch):
+        """IMDB rating should come from OMDB to avoid brittle IMDB scraping."""
+
+        def fail_imdb_fetch(*args, **kwargs):
+            raise AssertionError("IMDB scraping should not be used when OMDB has ratings")
+
+        monkeypatch.setattr(
+            "webapp.external_api._fetch_omdb_title",
+            lambda title_id, user_agent: {
+                "Response": "True",
+                "imdbRating": "8.2",
+                "Ratings": [
+                    {"Source": "Internet Movie Database", "Value": "8.2/10"},
+                    {"Source": "Rotten Tomatoes", "Value": "93%"},
+                ],
+            },
+        )
+        monkeypatch.setattr("webapp.external_api.requests.get", fail_imdb_fetch)
+
+        assert _fetch_ratings("tt0070735", "test-agent") == ("8.2", "93%")
 
 
 class TestFetchTmdbTrending:

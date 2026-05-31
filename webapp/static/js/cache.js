@@ -127,7 +127,7 @@ export function getListCacheKey(room, status, page, perPage = 10) {
  * @returns {string} - Cache key
  */
 export function getDetailCacheKey(titleId) {
-  return `detail_${titleId}`;
+  return `detail_v2_${titleId}`;
 }
 
 /**
