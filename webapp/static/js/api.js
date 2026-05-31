@@ -13,7 +13,7 @@ import {
 } from './cache.js';
 
 const MAX_RESULTS = 10;
-const TRENDING_CACHE_KEY = 'trending_v2';
+const TRENDING_CACHE_KEY = 'trending_v3';
 
 /**
  * Search for titles
@@ -50,8 +50,9 @@ export async function searchTitles(query, signal) {
  * @returns {Promise<object>} - Trending results
  */
 export async function getTrending() {
-  // Drop pre-fallback cache entries that may contain an empty result set.
+  // Drop older cache entries that may contain empty or pre-TMDB fallback results.
   removeCached('trending');
+  removeCached('trending_v2');
 
   // Check cache first
   const cached = getCached(TRENDING_CACHE_KEY);
