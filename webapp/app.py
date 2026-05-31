@@ -17,6 +17,12 @@ except ImportError:
 def create_app() -> Flask:
     """Create and configure the Flask application."""
     application = Flask(__name__)
+    application.secret_key = os.environ.get("SHOVO_SECRET_KEY", os.urandom(32))
+    application.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=os.environ.get("SHOVO_COOKIE_SECURE", "").lower() in {"1", "true", "yes", "on"},
+    )
 
     # Register teardown to close database connections
     application.teardown_appcontext(close_db)

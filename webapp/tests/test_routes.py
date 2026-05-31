@@ -282,6 +282,74 @@ class TestRenameAPI:
         assert data["error"] == "room_exists"
 
 
+class TestPrivateRoomAPI:
+    """Tests for server-side private room authorization."""
+
+    def test_private_room_blocks_list_until_password_verified(self, client):
+        """Private room list APIs require password verification."""
+        client.post(
+            "/api/list",
+            json={"room": "privateroom", "title_id": "tt1234567", "title": "Private Movie"},
+        )
+        privacy_response = client.post(
+            "/api/room/privacy",
+            json={"room": "privateroom", "is_private": True, "password": "secret"},
+        )
+        assert privacy_response.status_code == 200
+
+        unauthorized_client = client.application.test_client()
+        blocked_response = unauthorized_client.get("/api/list?room=privateroom")
+        assert blocked_response.status_code == 403
+        assert json.loads(blocked_response.data)["error"] == "unauthorized_room"
+
+        bad_password_response = unauthorized_client.post(
+            "/api/room/verify-password",
+            json={"room": "privateroom", "password": "wrong"},
+        )
+        assert bad_password_response.status_code == 200
+        assert json.loads(bad_password_response.data)["authorized"] is False
+        assert unauthorized_client.get("/api/list?room=privateroom").status_code == 403
+
+        good_password_response = unauthorized_client.post(
+            "/api/room/verify-password",
+            json={"room": "privateroom", "password": "secret"},
+        )
+        assert good_password_response.status_code == 200
+        assert json.loads(good_password_response.data)["authorized"] is True
+
+        allowed_response = unauthorized_client.get("/api/list?room=privateroom")
+        assert allowed_response.status_code == 200
+        assert len(json.loads(allowed_response.data)["items"]) == 1
+
+    def test_private_room_blocks_mutations_until_authorized(self, client):
+        """Private room write APIs require password verification."""
+        client.post(
+            "/api/list",
+            json={"room": "lockedroom", "title_id": "tt1234567", "title": "Locked Movie"},
+        )
+        client.post(
+            "/api/room/privacy",
+            json={"room": "lockedroom", "is_private": True, "password": "secret"},
+        )
+
+        unauthorized_client = client.application.test_client()
+        response = unauthorized_client.post(
+            "/api/list",
+            json={"room": "lockedroom", "title_id": "tt7654321", "title": "Blocked Movie"},
+        )
+        assert response.status_code == 403
+
+        unauthorized_client.post(
+            "/api/room/verify-password",
+            json={"room": "lockedroom", "password": "secret"},
+        )
+        response = unauthorized_client.post(
+            "/api/list",
+            json={"room": "lockedroom", "title_id": "tt7654321", "title": "Allowed Movie"},
+        )
+        assert response.status_code == 200
+
+
 class TestDetailsAPI:
     """Tests for details API."""
 

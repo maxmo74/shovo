@@ -50,7 +50,13 @@ Create `/etc/shovo.env` with the following contents:
 
 ```bash
 OMDB_API_KEY=your_real_key
+SHOVO_SECRET_KEY=replace_with_a_long_random_secret
+SHOVO_COOKIE_SECURE=1
 ```
+
+Generate `SHOVO_SECRET_KEY` with a command such as `openssl rand -hex 32`.
+It signs Flask session cookies used for private-room authorization, so keep it stable
+across restarts and never commit it.
 
 ```bash
 sudo chown root:shovo /etc/shovo.env

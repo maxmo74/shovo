@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 import requests
-from flask import Blueprint, jsonify, redirect, render_template, request
+from flask import Blueprint, jsonify, redirect, render_template, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # Support both package and standalone imports
@@ -50,7 +50,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.65"
+APP_VERSION = "1.6.66"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 
@@ -60,6 +60,46 @@ _refresh_lock = threading.Lock()
 _refresh_state: dict[str, dict[str, int | bool]] = {}
 _trending_lock = threading.Lock()
 _trending_cache: dict[str, Any] = {"data": [], "fetched_at": 0, "refreshing": False}
+
+
+def _authorized_rooms() -> set[str]:
+    """Return rooms authorized in the signed Flask session."""
+    rooms = session.get("authorized_rooms", [])
+    if not isinstance(rooms, list):
+        return set()
+    return {sanitize_room(room) for room in rooms if sanitize_room(room)}
+
+
+def _mark_room_authorized(room: str) -> None:
+    """Mark a room as authorized in the signed Flask session."""
+    sanitized = sanitize_room(room)
+    rooms = _authorized_rooms()
+    rooms.add(sanitized)
+    session["authorized_rooms"] = sorted(rooms)
+
+
+def _is_room_private(room: str) -> bool:
+    """Return whether a room is private."""
+    row = get_db().execute(
+        "SELECT is_private FROM room_settings WHERE room = ?",
+        (room,),
+    ).fetchone()
+    return bool(row and row["is_private"])
+
+
+def _room_is_authorized(room: str) -> bool:
+    """Return whether the current request may access room data."""
+    sanitized = sanitize_room(room)
+    if not sanitized:
+        return False
+    return not _is_room_private(sanitized) or sanitized in _authorized_rooms()
+
+
+def _require_room_authorized(room: str) -> tuple[Any, int] | None:
+    """Return a 403 response if a private room has not been unlocked."""
+    if _room_is_authorized(room):
+        return None
+    return jsonify({"error": "unauthorized_room"}), 403
 
 
 @bp.route("/")
@@ -151,6 +191,9 @@ def api_refresh() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     user_agent = request_user_agent()
     with _refresh_lock:
         state = _refresh_state.get(room)
@@ -166,6 +209,9 @@ def api_refresh_status() -> Any:
     room = request.args.get("room", "")
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     with _refresh_lock:
         state = _refresh_state.get(room, {"refreshing": False, "processed": 0, "total": 0})
         return jsonify(state)
@@ -188,6 +234,9 @@ def api_list() -> Any:
     room = room_from_request() or request.args.get("room", "")
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     status = request.args.get("status", "unwatched")
     watched_flag = 1 if status == "watched" else 0
     try:
@@ -310,6 +359,9 @@ def api_add() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     data = request.json
     title_id = data.get("title_id")
     title = data.get("title")
@@ -362,6 +414,9 @@ def api_patch_list() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     title_id = request.json.get("title_id")
     watched = parse_watched(request.json.get("watched"))
     if not title_id:
@@ -383,6 +438,9 @@ def api_order() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     order = request.json.get("order")
     if not isinstance(order, list) or not order:
         return jsonify({"error": "invalid_order"}), 400
@@ -406,6 +464,9 @@ def api_delete() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     title_id = request.json.get("title_id")
     if not title_id:
         return jsonify({"error": "missing_title_id"}), 400
@@ -426,6 +487,9 @@ def api_rename_list() -> Any:
     room = room_from_request()
     if not room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(room)
+    if unauthorized:
+        return unauthorized
     next_room = sanitize_room(request.json.get("next_room"))
     if not next_room:
         return jsonify({"error": "missing_next_room"}), 400
@@ -459,6 +523,10 @@ def api_delete_room() -> Any:
     target_room = request.json.get("room")
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
+    target_room = sanitize_room(target_room)
+    unauthorized = _require_room_authorized(target_room)
+    if unauthorized:
+        return unauthorized
     conn = get_db()
     conn.execute("DELETE FROM lists WHERE room = ?", (target_room,))
     conn.execute("DELETE FROM room_settings WHERE room = ?", (target_room,))
@@ -469,7 +537,7 @@ def api_delete_room() -> Any:
 @bp.route("/api/room/privacy", methods=["GET"])
 def api_get_room_privacy() -> Any:
     """Get room privacy settings (never exposes password)."""
-    target_room = request.args.get("room", "")
+    target_room = sanitize_room(request.args.get("room", ""))
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
     conn = get_db()
@@ -487,11 +555,14 @@ def api_set_room_privacy() -> Any:
     """Set room privacy settings (password is hashed before storage)."""
     if not request.is_json:
         return jsonify({"error": "invalid_payload"}), 400
-    target_room = request.json.get("room")
+    target_room = sanitize_room(request.json.get("room"))
     is_private = request.json.get("is_private", False)
     password = request.json.get("password", "")
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
+    unauthorized = _require_room_authorized(target_room)
+    if unauthorized:
+        return unauthorized
     conn = get_db()
     if is_private and not password:
         return jsonify({"error": "password_required"}), 400
@@ -506,6 +577,8 @@ def api_set_room_privacy() -> Any:
          1 if is_private else 0, hashed),
     )
     conn.commit()
+    if is_private:
+        _mark_room_authorized(target_room)
     return jsonify({"status": "ok"})
 
 
@@ -514,7 +587,7 @@ def api_verify_room_password() -> Any:
     """Verify a password for a private room."""
     if not request.is_json:
         return jsonify({"error": "invalid_payload"}), 400
-    target_room = request.json.get("room")
+    target_room = sanitize_room(request.json.get("room"))
     password = request.json.get("password", "")
     if not target_room:
         return jsonify({"error": "missing_room"}), 400
@@ -526,6 +599,8 @@ def api_verify_room_password() -> Any:
     if not row or not row["password_hash"]:
         return jsonify({"authorized": False})
     authorized = check_password_hash(row["password_hash"], password)
+    if authorized:
+        _mark_room_authorized(target_room)
     return jsonify({"authorized": authorized})
 
 
