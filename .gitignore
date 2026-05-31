@@ -35,9 +35,12 @@ build/
 dist/
 *.egg-info/
 
-# Environment variables
+# Environment variables and local-only notes
 .env
 .env.local
+LOCAL_*.md
+*.local.md
+.local/
 
 # Node modules
 node_modules/

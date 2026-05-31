@@ -6,20 +6,19 @@ import tempfile
 
 import pytest
 
-# Set test database path before importing app
-TEST_DB_FD, TEST_DB_PATH = tempfile.mkstemp()
-os.environ["SHOVO_TEST_DB"] = TEST_DB_PATH
-
-
 @pytest.fixture
 def app():
-    """Create application for testing."""
+    """Create application for testing with an isolated database per test."""
+    test_db_fd, test_db_path = tempfile.mkstemp(prefix="shovo-test-", suffix=".sqlite3")
+    os.close(test_db_fd)
+    os.environ["SHOVO_TEST_DB"] = test_db_path
+
     # Import here to use test database
     from webapp import database
 
     # Override database path for tests
     original_db_path = database.DB_PATH
-    database.DB_PATH = TEST_DB_PATH
+    database.DB_PATH = test_db_path
 
     from webapp import create_app
 
@@ -38,12 +37,9 @@ def app():
 
     # Cleanup
     database.DB_PATH = original_db_path
+    os.environ.pop("SHOVO_TEST_DB", None)
     try:
-        os.close(TEST_DB_FD)
-    except OSError:
-        pass  # File descriptor may already be closed
-    try:
-        os.unlink(TEST_DB_PATH)
+        os.unlink(test_db_path)
     except FileNotFoundError:
         pass  # File may already be deleted
 
