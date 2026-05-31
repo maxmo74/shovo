@@ -51,7 +51,7 @@ except ImportError:
         serialize_result,
     )
 
-APP_VERSION = "1.6.73"
+APP_VERSION = "1.6.74"
 DEFAULT_ROOM_COOKIE = "shovo_default_room"
 TRENDING_TTL_SECONDS = 60 * 60
 CSRF_HEADER = "X-CSRF-Token"

@@ -118,7 +118,7 @@ export function cleanupCache() {
  * @returns {string} - Cache key
  */
 export function getListCacheKey(room, status, page, perPage = 10) {
-  return `list_${room}_${status}_${page}_${perPage}`;
+  return `list_v2_${room}_${status}_${page}_${perPage}`;
 }
 
 /**
