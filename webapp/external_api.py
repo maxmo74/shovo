@@ -39,6 +39,14 @@ DEFAULT_USER_AGENT = "shovo-movielist/1.0 (+https://example.com)"
 MAX_RESULTS = 10
 ALLOWED_TYPE_LABELS = {"feature", "movie", "tvseries", "tvminiseries", "tvmovie"}
 OMDB_API_KEY = os.environ.get("OMDB_API_KEY", "thewdb")
+DEFAULT_TRENDING_TITLE_IDS = tuple(
+    title_id.strip()
+    for title_id in os.environ.get(
+        "SHOVO_TRENDING_FALLBACK_IDS",
+        "tt0111161,tt0068646,tt0468569,tt0109830,tt0137523,tt1375666,tt0816692,tt0133093,tt0120737,tt0167260",
+    ).split(",")
+    if title_id.strip()
+)
 
 
 def normalize_type_label(type_label: str | None) -> str:
@@ -288,15 +296,11 @@ def fetch_title_by_id(title_id: str, user_agent: str) -> SearchResult | None:
     return None
 
 
-def fetch_trending(user_agent: str) -> list[SearchResult]:
-    """Fetch trending titles from IMDB."""
-    headers = {"User-Agent": user_agent}
-    response = requests.get(IMDB_TRENDING_URL, headers=headers, timeout=10)
-    response.raise_for_status()
-    ids = re.findall(r"/title/(tt\d+)/", response.text)
+def _titles_from_ids(title_ids: Iterable[str], user_agent: str) -> list[SearchResult]:
+    """Fetch title summaries for a list of IMDB IDs."""
     seen: set[str] = set()
     results: list[SearchResult] = []
-    for title_id in ids:
+    for title_id in title_ids:
         if title_id in seen:
             continue
         seen.add(title_id)
@@ -306,6 +310,18 @@ def fetch_trending(user_agent: str) -> list[SearchResult]:
         if len(results) >= MAX_RESULTS:
             break
     return results
+
+
+def fetch_trending(user_agent: str) -> list[SearchResult]:
+    """Fetch trending titles from IMDB, with a fallback if IMDB blocks chart scraping."""
+    headers = {"User-Agent": user_agent}
+    response = requests.get(IMDB_TRENDING_URL, headers=headers, timeout=10)
+    response.raise_for_status()
+    ids = re.findall(r"/title/(tt\d+)/", response.text)
+    results = _titles_from_ids(ids, user_agent)
+    if results:
+        return results
+    return _titles_from_ids(DEFAULT_TRENDING_TITLE_IDS, user_agent)
 
 
 def refresh_title_details(

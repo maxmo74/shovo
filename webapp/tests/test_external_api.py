@@ -1,7 +1,8 @@
 """Tests for external API functions."""
 from __future__ import annotations
 
-from webapp.external_api import normalize_type_label, shrink_image_url
+from webapp.external_api import fetch_trending, normalize_type_label, shrink_image_url
+from webapp.models import SearchResult
 
 
 class TestNormalizeTypeLabel:
@@ -35,6 +36,82 @@ class TestNormalizeTypeLabel:
         """Test normalization removes non-alphabetic characters."""
         assert normalize_type_label("tv-series") == "tvseries"
         assert normalize_type_label("tv_movie") == "tvmovie"
+
+
+class TestFetchTrending:
+    """Tests for trending title fetching."""
+
+    def test_fetch_trending_uses_fallback_when_chart_has_no_ids(self, monkeypatch):
+        """IMDB WAF/empty chart responses should still produce fallback results."""
+
+        class Response:
+            text = ""
+
+            def raise_for_status(self):
+                return None
+
+        def fake_get(*args, **kwargs):
+            return Response()
+
+        def fake_fetch_title_by_id(title_id, user_agent):
+            return SearchResult(
+                title_id=title_id,
+                title=f"Title {title_id}",
+                year="2024",
+                original_language=None,
+                type_label="movie",
+                image=None,
+                rating=None,
+                rotten_tomatoes=None,
+                runtime_minutes=None,
+                total_seasons=None,
+                total_episodes=None,
+                avg_episode_length=None,
+            )
+
+        monkeypatch.setattr("webapp.external_api.requests.get", fake_get)
+        monkeypatch.setattr("webapp.external_api.fetch_title_by_id", fake_fetch_title_by_id)
+        monkeypatch.setattr("webapp.external_api.DEFAULT_TRENDING_TITLE_IDS", ("tt0000001", "tt0000002"))
+
+        results = fetch_trending("test-agent")
+
+        assert [result.title_id for result in results] == ["tt0000001", "tt0000002"]
+
+    def test_fetch_trending_prefers_chart_ids(self, monkeypatch):
+        """Chart IDs are used when IMDB returns parseable chart HTML."""
+
+        class Response:
+            text = '<a href="/title/tt1234567/">One</a><a href="/title/tt7654321/">Two</a>'
+
+            def raise_for_status(self):
+                return None
+
+        def fake_get(*args, **kwargs):
+            return Response()
+
+        def fake_fetch_title_by_id(title_id, user_agent):
+            return SearchResult(
+                title_id=title_id,
+                title=f"Title {title_id}",
+                year="2024",
+                original_language=None,
+                type_label="movie",
+                image=None,
+                rating=None,
+                rotten_tomatoes=None,
+                runtime_minutes=None,
+                total_seasons=None,
+                total_episodes=None,
+                avg_episode_length=None,
+            )
+
+        monkeypatch.setattr("webapp.external_api.requests.get", fake_get)
+        monkeypatch.setattr("webapp.external_api.fetch_title_by_id", fake_fetch_title_by_id)
+        monkeypatch.setattr("webapp.external_api.DEFAULT_TRENDING_TITLE_IDS", ("tt0000001",))
+
+        results = fetch_trending("test-agent")
+
+        assert [result.title_id for result in results] == ["tt1234567", "tt7654321"]
 
 
 class TestShrinkImageUrl:
